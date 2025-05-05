@@ -150,6 +150,71 @@ class Produto:
             raise TypeError("preco deve ser numérico")
         self.__preco = float(value)
 
+class TelaProduto:
+    def mostrar_menu(self):
+        print("\n=== Menu Produtos ===")
+        print("1. Cadastrar produto")
+        print("2. Listar produtos")
+        print("0. Voltar")
+        return input("Escolha uma opção: ")
+
+    def ler_dados(self):
+        codigo = input("Código: ")
+        nome = input("Nome: ")
+        descricao = input("Descrição: ")
+        try:
+            preco = float(input("Preço: "))
+        except ValueError:
+            raise ValueError("Preço deve ser numérico")
+        return codigo, nome, descricao, preco
+
+    def mostrar_produtos(self, produtos):
+        print("\n=== Lista de Produtos ===")
+        if not produtos:
+            print("Nenhum produto cadastrado.")
+        else:
+            for p in produtos:
+                print(f"Código: {p.codigo} | Nome: {p.nome} | Descrição: {p.descricao} | Preço: {p.preco}")
+
+class ControllerProduto:
+    def __init__(self, sistema, tela):
+        self.__sistema = sistema
+        self.__tela = tela
+
+    @property
+    def sistema(self):
+        return self.__sistema
+
+    def executar(self):
+        while True:
+            opc = self.__tela.mostrar_menu()
+            if opc == '1':
+                self.__cadastrar()
+            elif opc == '2':
+                self.__listar()
+            elif opc == '0':
+                break
+            else:
+                print("Opção inválida!")
+
+    def __cadastrar(self):
+        try:
+            dados = self.__tela.ler_dados()
+            
+            for item in self.__sistema.listaProdutos:
+                if item.codigo == dados[0]:
+                    raise Exception("Código repetido")
+
+            produto = Produto(*dados)
+            self.__sistema.cadastrarProduto(produto)
+            print("Produto cadastrado com sucesso!")
+        except Exception as e:
+            print(f"Erro ao cadastrar: {e}")
+
+    def __listar(self):
+        produtos = self.__sistema.listaProdutos
+        self.__tela.mostrar_produtos(produtos)
+
 class Venda:
     def __init__(self, id, data, afiliado, produto, quantidade):
         if not isinstance(id, int):
@@ -480,7 +545,35 @@ class Relatorio:
     def gerarRelatorioFinanceiro(self):
         pass
 
-def testar_sistema():
+class ControladorSistema:
+    """Controlador Geral: Gerencia todos os controllers do sistema."""
+    def __init__(self):
+        self.__sistema = SistemaFinanceiroAfiliados()
+        self.__controller_produto = ControllerProduto(self.__sistema, TelaProduto())
+
+    @property
+    def sistema(self):
+        return self.__sistema
+    
+    @property
+    def controller_produto(self):
+        return self.__controller_produto
+
+    def executar(self):
+        while True:
+            print("\n=== Sistema Financeiro de Afiliados ===")
+            print("1. Gerenciar Produtos")
+            print("0. Sair")
+            opc = input("Escolha uma opção: ")
+            if opc == '1':
+                self.__controller_produto.executar()
+            elif opc == '0':
+                print("Encerrando...")
+                break
+            else:
+                print("Opção inválida!")
+
+def testar__sistema():
     print("\n=== Teste Afiliado ===")
     afiliado_pai = Afiliado(1, "Carlos", "carlos@email.com")
     afiliado_filho = Afiliado(2, "Ana", "ana@email.com", afiliado_pai)
@@ -575,5 +668,33 @@ def testar_sistema():
     else:
         print("Falhou: Método gerarRelatorioFinanceiro não deveria retornar valor")
 
+    print("\n=== Teste MVC Produto ===")
+    sistema2 = SistemaFinanceiroAfiliados()
+    controller2 = ControllerProduto(sistema2, TelaProduto())
+    # simula opção 0 para sair imediatamente
+    orig_input = __builtins__.input
+    __builtins__.input = lambda prompt='': '0'
+    try:
+        controller2.executar()
+        print("Passou: ControllerProduto.executar com opção '0' encerra sem erro")
+    except Exception as e:
+        print(f"Falhou: ControllerProduto.executar levantou exceção {e}")
+    __builtins__.input = orig_input
+
+    # === Teste ControladorSistema ===
+    print("\n=== Teste ControladorSistema ===")
+    cs = ControladorSistema()
+    if isinstance(cs.sistema, SistemaFinanceiroAfiliados):
+        print("Passou: ControladorSistema inicializa SistemaFinanceiroAfiliados")
+    else:
+        print("Falhou: Sistema não inicializado corretamente")
+    if cs.controller_produto.sistema is cs.sistema:
+        print("Passou: ControllerProduto está vinculado ao mesmo sistema")
+    else:
+        print("Falhou: ControllerProduto não vinculado ao sistema")
+
 if __name__ == "__main__":
-    testar_sistema()
+    testar__sistema()
+
+aa = ControladorSistema()
+aa.executar()
