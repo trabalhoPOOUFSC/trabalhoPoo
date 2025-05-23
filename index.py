@@ -159,22 +159,24 @@ class TelaProduto:
         return input("Escolha uma opção: ")
 
     def ler_dados(self):
-        codigo = input("Código: ")
-        nome = input("Nome: ")
-        descricao = input("Descrição: ")
+        codigo = input("Código: ").strip()
+        if not codigo:
+            raise ValueError("Código é obrigatório e não pode ser vazio")
+        nome = input("Nome: ").strip()
+        if not nome:
+            raise ValueError("Nome é obrigatório e não pode ser vazio")
+        descricao = input("Descrição: ").strip()
+        if not descricao:
+            raise ValueError("Descrição é obrigatória e não pode ser vazia")
+        preco_str = input("Preço: ")
         try:
-            preco = float(input("Preço: "))
+            preco = float(preco_str)
         except ValueError:
             raise ValueError("Preço deve ser numérico")
         return codigo, nome, descricao, preco
 
-    def mostrar_produtos(self, produtos):
-        print("\n=== Lista de Produtos ===")
-        if not produtos:
-            print("Nenhum produto cadastrado.")
-        else:
-            for p in produtos:
-                print(f"Código: {p.codigo} | Nome: {p.nome} | Descrição: {p.descricao} | Preço: {p.preco}")
+    def mostrar_produto(self, info):
+        print(f"Código: {info['codigo']} | Nome: {info['nome']} | Descrição: {info['descricao']} | Preço: {info['preco']}")
 
 class ControllerProduto:
     def __init__(self, sistema, tela):
@@ -213,7 +215,13 @@ class ControllerProduto:
 
     def __listar(self):
         produtos = self.__sistema.listaProdutos
-        self.__tela.mostrar_produtos(produtos)
+        print("\n=== Lista de Produtos ===")
+        if not produtos:
+            print("Nenhum produto cadastrado.")
+        else:
+            for p in produtos:
+                info = {'codigo': p.codigo, 'nome': p.nome, 'descricao': p.descricao, 'preco': p.preco}
+                self.__tela.mostrar_produto(info)
 
 class Venda:
     def __init__(self, id, data, afiliado, produto, quantidade):
