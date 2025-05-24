@@ -375,6 +375,106 @@ class Venda:
         self.__total = self.quantidade * self.produto.preco
         return self.__total
 
+class TelaVenda:
+    def mostrar_menu(self):
+        print("\n=== Menu vendas ===")
+        print("1. Cadastrar venda")
+        print("2. Listar vendas")
+        print("0. Voltar")
+        return input("Escolha uma opção: ")
+
+    def ler_dados(self):
+        id = int(input("Id: ").strip())
+        if not id:
+            raise ValueError("Id é obrigatório e não pode ser vazio")
+
+        data_str = input("Data no formato AAAA-MM-DD: ").strip()
+        data = date.fromisoformat(data_str)
+        if not data:
+            raise ValueError("Data é obrigatória e não pode ser vazia")
+
+        afiliado_id = int(input("Id do Afiliado: ").strip())
+        if not afiliado_id:
+            raise ValueError("Afiliado é obrigatório e não pode ser vazio")
+
+        produto_codigo = input("Código do Produto: ").strip()
+        if not produto_codigo:
+            raise ValueError("Produto é obrigatório e não pode ser vazio")
+
+        quantidade_str = input("Quantidade: ").strip()
+        if not quantidade_str:
+            raise ValueError("Quantidade é obrigatória e não pode ser vazia")
+        quantidade = int(quantidade_str)
+
+        return id, data, afiliado_id, produto_codigo, quantidade
+
+    def mostrar_venda(self, info):
+        print(f"Id: {info['id']} | Data: {info['data']} | Afiliado: {info['afiliado']} | Produto: {info['produto']}, Quantidade: {info['quantidade']}")
+  
+class ControllerVenda:
+    def __init__(self, sistema, tela):
+        self.__sistema = sistema
+        self.__tela = tela
+
+    @property
+    def sistema(self):
+        return self.__sistema
+
+    def executar(self):
+        while True:
+            opc = self.__tela.mostrar_menu()
+            if opc == '1':
+                self.__cadastrar()
+            elif opc == '2':
+                self.__listar()
+            elif opc == '0':
+                break
+            else:
+                print("Opção inválida!")
+
+    def __cadastrar(self):
+        try:
+            dados = self.__tela.ler_dados()
+            
+            for item in self.__sistema.listaVendas:
+                if item.id == dados[0]:
+                    raise Exception("Id repetido")
+            id, data, afiliado_id, produto_codigo, quantidade = dados
+
+            afiliado = None
+            for a in self.__sistema.listaAfiliados:
+                if a.id == afiliado_id:
+                    afiliado = a
+                    break
+            if afiliado is None:
+                raise Exception("Afiliado não encontrado")
+
+            produto = None
+            for p in self.__sistema.listaProdutos:
+                if p.codigo == produto_codigo:
+                    produto = p
+                    break
+            if produto is None:
+                raise Exception("Produto não encontrado")
+            
+            venda = Venda(id, data, a, p, quantidade)
+            self.__sistema.registrarVenda(venda)
+            print("Venda registrada com sucesso!")
+
+        except Exception as e:
+            print(f"Erro ao cadastrar: {e}")
+
+    def __listar(self):
+        vendas = self.__sistema.listaVendas
+        print("\n=== Lista de Vendas ===")
+        if not vendas:
+            print("Nenhuma venda registrada.")
+        else:
+            for v in vendas:
+                info = {'id': v.id, 'data': v.data, 'afiliado': v.afiliado.nome,
+                         'produto': v.produto.nome, 'quantidade': v.quantidade}
+                self.__tela.mostrar_venda(info)
+
 class Comissao:
     def __init__(self, afiliado, venda, valorDireto, valorIndireto):
         if not isinstance(afiliado, Afiliado):
@@ -626,6 +726,7 @@ class ControladorSistema:
         self.__sistema = SistemaFinanceiroAfiliados()
         self.__controller_produto = ControllerProduto(self.__sistema, TelaProduto())
         self.__controller_afiliado = ControllerAfiliado(self.__sistema, TelaAfiliado())
+        self.__controller_venda = ControllerVenda(self.__sistema, TelaVenda())
 
     @property
     def sistema(self):
@@ -638,18 +739,24 @@ class ControladorSistema:
     @property
     def controller_afiliado(self):
         return self.__controller_afiliado
-
+    
+    @property
+    def controller_venda(self):
+        return self.__controller_venda
     def executar(self):
         while True:
             print("\n=== Sistema Financeiro de Afiliados ===")
             print("1. Gerenciar Produtos")
             print("2. Gerenciar Afiliados")
+            print("3. Gerenciar Vendas")
             print("0. Sair")
             opc = input("Escolha uma opção: ")
             if opc == '1':
                 self.__controller_produto.executar()
             elif opc == '2':
                 self.__controller_afiliado.executar()
+            elif opc =='3':
+                self.__controller_venda.executar()
             elif opc == '0':
                 print("Encerrando...")
                 break
