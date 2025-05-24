@@ -41,7 +41,6 @@ class Pessoa:
         if not isinstance(value, str):
             raise TypeError("contato deve ser str")
         self.__contato = value
-
 class Afiliado(Pessoa):
     def __init__(self, id, nome, contato, parent=None):
         super().__init__(id, nome, contato)
@@ -94,6 +93,74 @@ class Afiliado(Pessoa):
         if not isinstance(referral, Afiliado):
             raise TypeError("referral deve ser do tipo Afiliado")
         self.__referrals.append(referral)
+
+class TelaAfiliado:
+    def mostrar_menu(self):
+        print("\n=== Menu Afiliados ===")
+        print("1. Cadastrar afiliado")
+        print("2. Listar afiliado")
+        print("0. Voltar")
+        return input("Escolha uma opção: ")
+    
+    def ler_dados(self):
+        id =  int(input("Id: ").strip())
+        if not id:
+            raise ValueError("Id é obrigatório e não pode ser vazio")
+        nome = input("Nome: ").strip()
+        if not nome:
+            raise ValueError("Nome é obrigatório e nao pode ser vazio")
+        contato = input("Contato: ").strip()
+        if not contato:
+            raise ValueError("Contato é obrigatório e não pode ser vazio")
+        return id, nome, contato
+
+    def mostrar_afiliado(self, info):
+        print(f"Id: {info['id']} | Nome: {info['nome']} | contato: {info['contato']}")
+
+class ControllerAfiliado:
+    def __init__(self, sistema, tela):
+        self.__sistema = sistema
+        self.__tela = tela
+
+    @property
+    def sistema(self):
+        return self.__sistema
+    
+    def executar(self):
+        while True:
+            opc = self.__tela.mostrar_menu()
+            if opc == '1':
+                self.__cadastrar()
+            elif opc == '2':
+                self.__listar()
+            elif opc == '0':
+                break
+            else:
+                print("Opção inválida!")
+            
+    def __cadastrar(self):
+        try:
+            dados = self.__tela.ler_dados()
+
+            for item in self.__sistema.listaAfiliados:
+                if item.id == dados[0]:
+                    raise Exception("ID repetido")
+
+            afiliado = Afiliado(*dados)
+            self.__sistema.cadastrarAfiliado(afiliado)
+            print("Afiliado cadastrado com sucesso!")
+        except Exception as e:
+            print(f"Erro ao cadastrar: {e}")
+    
+    def __listar(self):
+        afiliados = self.__sistema.listaAfiliados
+        print("\n=== Lista de afiliado ===")
+        if not afiliados:
+            print("Nenhum afiliado cadastrado.")
+        else:
+            for a in afiliados:
+                info = {'id': a.id, 'nome': a.nome, 'contato': a.contato}
+                self.__tela.mostrar_afiliado(info)
 
 class Produto:
     def __init__(self, codigo, nome, descricao, preco):
@@ -558,6 +625,7 @@ class ControladorSistema:
     def __init__(self):
         self.__sistema = SistemaFinanceiroAfiliados()
         self.__controller_produto = ControllerProduto(self.__sistema, TelaProduto())
+        self.__controller_afiliado = ControllerAfiliado(self.__sistema, TelaAfiliado())
 
     @property
     def sistema(self):
@@ -566,15 +634,22 @@ class ControladorSistema:
     @property
     def controller_produto(self):
         return self.__controller_produto
+    
+    @property
+    def controller_afiliado(self):
+        return self.__controller_afiliado
 
     def executar(self):
         while True:
             print("\n=== Sistema Financeiro de Afiliados ===")
             print("1. Gerenciar Produtos")
+            print("2. Gerenciar Afiliados")
             print("0. Sair")
             opc = input("Escolha uma opção: ")
             if opc == '1':
                 self.__controller_produto.executar()
+            elif opc == '2':
+                self.__controller_afiliado.executar()
             elif opc == '0':
                 print("Encerrando...")
                 break
