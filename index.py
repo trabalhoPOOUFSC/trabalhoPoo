@@ -671,7 +671,7 @@ class ControllerPagamento:
                 self.adicionar_pagamento()
             elif opc == '2':
                 self.__listar()
-            # há fazer
+            # fazer
             elif opc == '3':
                 self.processar_pagamento()
             elif opc == '0':
@@ -714,7 +714,7 @@ class ControllerPagamento:
                          'valorPago': p.valorPago, 'status': p.status}
                 self.__tela.mostrar_pagamento(info)
 
-    # há fazer
+    # fazer
     def processar_pagamento(self):
         id_pagamento = int(input("Digite o ID do pagamento a processar: "))
         for pagamento in self.__sistema.listaPagamentos:
@@ -839,8 +839,108 @@ class Relatorio:
 
     def gerarRelatorioFinanceiro(self):
         pass
-# class TelaRelatorio
-#class ControllerRelatorio
+
+class TelaRelatorio:
+    def mostrar_menu(self):
+        print("\n=== Menu Relatórios ===")
+        print("1. Gerar Relatório de Vendas")
+        print("2. Gerar Relatório Financeiro")
+        print("0. Voltar")
+        return input("Escolha uma opção: ")
+
+    def ler_dados(self):
+        data_inicial_str = input("Data inicial (YYYY-MM-DD): ").strip()
+        if not data_inicial_str:
+            raise ValueError("Data inicial é obrigatório e não pode ser vazio")
+        data_inicial = date.fromisoformat(data_inicial_str)
+
+        data_final_str = input("Data final (YYYY-MM-DD): ").strip()
+        if not data_final_str:
+            raise ValueError("Data final é obrigatório e não pode ser vazio")
+        data_final = date.fromisoformat(data_final_str)
+
+        afiliado_id = int(input("Id do Afiliado: ").strip())
+        if not afiliado_id:
+            raise ValueError("Id do Afiliado é obrigatório e não pode ser vazio")
+
+        return data_inicial, data_final, afiliado_id
+    
+    def mostrar_relatorio_vendas(self, vendas):
+        print("\n=== Relatório de Vendas ===")
+        if not vendas:
+            print("Nenhuma venda no período.")
+            return
+        for venda in vendas:
+            print(f"Venda ID: {venda.id} | Data: {venda.data} | Afiliado: {venda.afiliado.nome} | Valor: {venda.valor}")
+
+    def mostrar_relatorio_financeiro(self, pagamentos):
+        print("\n=== Relatório Financeiro ===")
+        if not pagamentos:
+            print("Nenhum pagamento no período.")
+            return
+        for pagamento in pagamentos:
+            print(f"Pagamento ID: {pagamento.id} | Data: {pagamento.data} | Afiliado: {pagamento.afiliado.nome} | "
+                  f"Valor: {pagamento.valorPago} | Status: {pagamento.status}")
+    
+class ControllerRelatorio:
+    def __init__(self, sistema, tela):
+        self.__sistema = sistema
+        self.__tela = tela
+
+    @property
+    def sistema(self):
+        return self.__sistema
+    
+    def executar(self):
+        while True:
+            opc = self.__tela.mostrar_menu()
+            if opc == '1':
+                self.gerar_relatorio_vendas()
+            elif opc == '2':
+                self.gerar_relatorio_financeiro()
+            elif opc == '0':
+                break
+            else:
+                print("Opção inválida!")
+
+    def gerar_relatorio_vendas(self):
+        try:
+            dados = self.__tela.ler_dados()
+            data_inicial, data_final, afiliado_id = dados
+
+            afiliado = None
+            for a in self.__sistema.listaAfiliados:
+                if a.id == afiliado_id:
+                    afiliado = a
+                    break
+            if afiliado is None:
+                raise Exception("Afiliado não encontrado")
+            
+            relatorio = Relatorio((data_inicial, data_final), afiliado)
+            vendas = relatorio.gerarRelatorioVendas()
+            self.__tela.mostrar_relatorio_vendas(vendas)
+        except Exception as e:
+            print(f"Erro ao gerar relatório de vendas: {e}")
+
+    def gerar_relatorio_financeiro(self):
+        try:
+            dados = self.__tela.ler_dados()
+            data_inicial, data_final, afiliado_id = dados
+
+            afiliado = None
+            for a in self.__sistema.listaAfiliados:
+                if a.id == afiliado_id:
+                    afiliado = a
+                    break
+            if afiliado is None:
+                raise Exception("Afiliado não encontrado")
+            
+            relatorio = Relatorio((data_inicial, data_final), afiliado)
+            pagamentos = relatorio.gerarRelatorioFinanceiro()
+            self.__tela.mostrar_relatorio_financeiro(pagamentos)
+        except Exception as e:
+            print(f"Erro ao gerar relatório financeiro: {e}")
+
 class ControladorSistema:
     """Controlador Geral: Gerencia todos os controllers do sistema."""
     def __init__(self):
@@ -849,6 +949,7 @@ class ControladorSistema:
         self.__controller_afiliado = ControllerAfiliado(self.__sistema, TelaAfiliado())
         self.__controller_venda = ControllerVenda(self.__sistema, TelaVenda())
         self.__controller_pagamento = ControllerPagamento(self.__sistema, TelaPagamento())
+        self.__controller_relatorio = ControllerRelatorio(self.__sistema, TelaRelatorio())
 
     @property
     def sistema(self):
@@ -869,6 +970,11 @@ class ControladorSistema:
     @property
     def controller_pagamento(self):
         return self.__controller_pagamento
+    
+    @property
+    def controller_relatorio(self):
+        return self.__controller_relatorio
+    
     def executar(self):
         while True:
             print("\n=== Sistema Financeiro de Afiliados ===")
@@ -876,6 +982,7 @@ class ControladorSistema:
             print("2. Gerenciar Afiliados")
             print("3. Gerenciar Vendas")
             print("4. Gerenciar Pagamentos")
+            print("5. Gerenciar Relatórios")
             print("0. Sair")
             opc = input("Escolha uma opção: ")
             if opc == '1':
@@ -886,6 +993,8 @@ class ControladorSistema:
                 self.__controller_venda.executar()
             elif opc == '4':
                 self.__controller_pagamento.executar()
+            elif opc == '5':
+                self.__controller_relatorio.executar()
             elif opc == '0':
                 print("Encerrando...")
                 break
