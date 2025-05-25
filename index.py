@@ -112,10 +112,12 @@ class TelaAfiliado:
         contato = input("Contato: ").strip()
         if not contato:
             raise ValueError("Contato é obrigatório e não pode ser vazio")
-        return id, nome, contato
-
+        parent_id = input("Parent Id: ").strip()
+        if not parent_id:
+            parent_id = None
+        return id, nome, contato, parent_id
     def mostrar_afiliado(self, info):
-        print(f"Id: {info['id']} | Nome: {info['nome']} | contato: {info['contato']}")
+        print(f"Id: {info['id']} | Nome: {info['nome']} | contato: {info['contato']} | Parent Id: {info['parent']}")
 
 class ControllerAfiliado:
     def __init__(self, sistema, tela):
@@ -145,8 +147,18 @@ class ControllerAfiliado:
             for item in self.__sistema.listaAfiliados:
                 if item.id == dados[0]:
                     raise Exception("ID repetido")
-
-            afiliado = Afiliado(*dados)
+            id, nome, contato, parent_id = dados
+            parent = None
+            for pa in self.__sistema.listaAfiliados:
+                if pa.id == int(dados[3]):
+                    parent = pa
+                    break
+            if dados[3] == None:
+                pass
+            elif parent is None:
+                raise Exception("Afiliado não encontrado")
+            
+            afiliado = Afiliado(id, nome, contato, parent)
             self.__sistema.cadastrarAfiliado(afiliado)
             print("Afiliado cadastrado com sucesso!")
         except Exception as e:
@@ -159,7 +171,10 @@ class ControllerAfiliado:
             print("Nenhum afiliado cadastrado.")
         else:
             for a in afiliados:
-                info = {'id': a.id, 'nome': a.nome, 'contato': a.contato}
+                if a.parent == None:
+                    info = {'id': a.id, 'nome': a.nome, 'contato': a.contato, 'parent': None}
+                else:
+                    info = {'id': a.id, 'nome': a.nome, 'contato': a.contato, 'parent': a.parent.id}
                 self.__tela.mostrar_afiliado(info)
 
 class Produto:
