@@ -43,23 +43,10 @@ class Pessoa:
         self.__contato = value
 
 class Afiliado(Pessoa):
-    def __init__(self, id, nome, contato, parent=None):
+    def __init__(self, id, nome, contato):
         super().__init__(id, nome, contato)
-        if parent is not None and not isinstance(parent, Afiliado):
-            raise TypeError("parent deve ser do tipo Afiliado ou None")
-        self.__parent = parent
         self.__vendas = []
         self.__referrals = []
-
-    @property
-    def parent(self):
-        return self.__parent
-
-    @parent.setter
-    def parent(self, value):
-        if value is not None and not isinstance(value, Afiliado):
-            raise TypeError("parent deve ser do tipo Afiliado ou None")
-        self.__parent = value
 
     @property
     def vendas(self):
@@ -99,12 +86,13 @@ class TelaAfiliado:
     def mostrar_menu(self):
         print("\n=== Menu Afiliados ===")
         print("1. Cadastrar afiliado")
-        print("2. Listar afiliado")
+        print("2. Adicionar afiliado referral")
+        print("3. Listar afiliado")
         print("0. Voltar")
         return input("Escolha uma opção: ")
     
-    def ler_dados(self):
-        id =  int(input("Id: ").strip())
+    def ler_dados(self, is_referral):
+        id = int(input("Id: ").strip())
         if not id:
             raise ValueError("Id é obrigatório e não pode ser vazio")
         nome = input("Nome: ").strip()
@@ -113,12 +101,17 @@ class TelaAfiliado:
         contato = input("Contato: ").strip()
         if not contato:
             raise ValueError("Contato é obrigatório e não pode ser vazio")
-        parent_id = input("Parent Id: ").strip()
-        if not parent_id:
-            parent_id = None
+        parent_id = None
+        if is_referral:
+            parent_id = int(input("parent_id: ").strip())
+            if not parent_id:
+                raise ValueError("ID do afiliado 'pai' é obrigatório e não pode ser vazio")
+
         return id, nome, contato, parent_id
+
     def mostrar_afiliado(self, info):
-        print(f"Id: {info['id']} | Nome: {info['nome']} | contato: {info['contato']} | Parent Id: {info['parent']}")
+        referrals = ', '.join(map(str, info['referrals']))
+        print(f"Id: {info['id']} | Nome: {info['nome']} | contato: {info['contato']} | Referrals: {referrals}")
 
 class ControllerAfiliado:
     def __init__(self, sistema, tela):
@@ -135,31 +128,32 @@ class ControllerAfiliado:
             if opc == '1':
                 self.__cadastrar()
             elif opc == '2':
+                self.__cadastrar(referral=True)
+            elif opc == '3':
                 self.__listar()
             elif opc == '0':
                 break
             else:
                 print("Opção inválida!")
             
-    def __cadastrar(self):
+    def __cadastrar(self, referral = False):
         try:
-            dados = self.__tela.ler_dados()
-
-            for item in self.__sistema.listaAfiliados:
-                if item.id == dados[0]:
-                    raise Exception("ID repetido")
+            dados = self.__tela.ler_dados(referral)
             id, nome, contato, parent_id = dados
             parent = None
-            for pa in self.__sistema.listaAfiliados:
-                if pa.id == int(dados[3]):
-                    parent = pa
-                    break
-            if dados[3] == None:
-                pass
-            elif parent is None:
-                raise Exception("Afiliado não encontrado")
+
+            for a in self.__sistema.listaAfiliados:
+                if a.id == id:
+                    raise Exception("ID repetido")
+                if referral and parent_id == a.id:
+                    parent = a
+
+            if referral and not parent:
+                raise Exception("ID do afiliado 'pai' não encontrado")
             
-            afiliado = Afiliado(id, nome, contato, parent)
+            afiliado = Afiliado(id, nome, contato)
+            if parent:
+                parent.adicionarReferral(afiliado)
             self.__sistema.cadastrarAfiliado(afiliado)
             print("Afiliado cadastrado com sucesso!")
         except Exception as e:
@@ -172,10 +166,10 @@ class ControllerAfiliado:
             print("Nenhum afiliado cadastrado.")
         else:
             for a in afiliados:
-                if a.parent == None:
-                    info = {'id': a.id, 'nome': a.nome, 'contato': a.contato, 'parent': None}
-                else:
-                    info = {'id': a.id, 'nome': a.nome, 'contato': a.contato, 'parent': a.parent.id}
+                referrals = []
+                for r in a.referrals:
+                    referrals.append(r.id)
+                info = {'id': a.id, 'nome': a.nome, 'contato': a.contato, 'referrals': referrals}
                 self.__tela.mostrar_afiliado(info)
 
 class Produto:
@@ -425,7 +419,7 @@ class TelaVenda:
         return id, data, afiliado_id, produto_codigo, quantidade
 
     def mostrar_venda(self, info):
-        print(f"Id: {info['id']} | Data: {info['data']} | Afiliado: {info['afiliado']} | Produto: {info['produto']}, Quantidade: {info['quantidade']}")
+        print(f"Id: {info['id']} | Data: {info['data']} | Afiliado: {info['afiliado']} | Produto: {info['produto']} | Quantidade: {info['quantidade']} | Total: R${info['total']}")
   
 class ControllerVenda:
     def __init__(self, sistema, tela):
@@ -488,7 +482,8 @@ class ControllerVenda:
         else:
             for v in vendas:
                 info = {'id': v.id, 'data': v.data, 'afiliado': v.afiliado.nome,
-                         'produto': v.produto.nome, 'quantidade': v.quantidade}
+                        'produto': v.produto.nome, 'quantidade': v.quantidade,
+                        'total': v.total}
                 self.__tela.mostrar_venda(info)
 
 class Comissao:
@@ -623,8 +618,8 @@ class Pagamento:
 class TelaPagamento:
     def mostrar_menu(self):
         print("\n=== Menu Pagamento ===")
-        print("1. Adicionar Pagamento")
-        print("2. Listar Pagamentos")
+        print("1. Pagar Afiliado")
+        print("2. Pagar Todos Os Afiliados")
         print("3. Processar Pagamento")
         print("0. Voltar")
         return input("Escolha uma opção: ")
@@ -671,7 +666,6 @@ class ControllerPagamento:
                 self.adicionar_pagamento()
             elif opc == '2':
                 self.__listar()
-            # fazer
             elif opc == '3':
                 self.processar_pagamento()
             elif opc == '0':
@@ -716,13 +710,12 @@ class ControllerPagamento:
 
     # fazer
     def processar_pagamento(self):
-        id_pagamento = int(input("Digite o ID do pagamento a processar: "))
+        valorTotalPagamentos = 0
         for pagamento in self.__sistema.listaPagamentos:
-            if pagamento.id == id_pagamento:
-                pagamento.processar()
-                print("Pagamento processado com sucesso!")
-                return
-        print("Pagamento não encontrado.")
+            pagamento.processar()
+            valorTotalPagamentos += pagamento.valorPago
+            print("Pagamento processado com sucesso!")
+            return
 
 class SistemaFinanceiroAfiliados:
     def __init__(self):
