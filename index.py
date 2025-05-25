@@ -131,7 +131,7 @@ class ControllerAfiliado:
             for a in self.__sistema.listaAfiliados:
                 if a.id == id:
                     raise Exception("ID repetido")
-                if a.id == int(parent_id):
+                if parent_id and a.id == int(parent_id):
                     parent = a
 
             if parent_id and not parent:
@@ -151,7 +151,7 @@ class ControllerAfiliado:
             print("Nenhum afiliado cadastrado.")
         else:
             for a in afiliados:
-                if a.parent == None:
+                if a.parent is None:
                     info = {'id': a.id, 'nome': a.nome, 'contato': a.contato, 'parent': None}
                 else:
                     info = {'id': a.id, 'nome': a.nome, 'contato': a.contato, 'parent': a.parent.id}
@@ -303,6 +303,7 @@ class Venda:
         self.__produto = produto
         self.__quantidade = quantidade
         self.__total = self.calcularTotal()
+        self.__pagamento_afiliado = 'não realizado'
 
     @property
     def id(self):
@@ -366,6 +367,16 @@ class Venda:
             raise TypeError("total deve ser numérico")
         self.__total = float(value)
 
+    @property
+    def pagamento_afiliado(self):
+        return self.__pagamento_afiliado
+
+    @pagamento_afiliado.setter
+    def pagamento_afiliado(self, value):
+        if value not in ('não realizado', 'aguardando confirmação', 'realizado'):
+            raise ValueError("pagamento_afiliado deve ser 'não realizado', 'aguardando confirmação' ou 'realizado'")
+        self.__pagamento_afiliado = value
+
     def calcularTotal(self):
         self.__total = self.quantidade * self.produto.preco
         return self.__total
@@ -404,8 +415,8 @@ class TelaVenda:
         return id, data, afiliado_id, produto_codigo, quantidade
 
     def mostrar_venda(self, info):
-        print(f"Id: {info['id']} | Data: {info['data']} | Afiliado: {info['afiliado']} | Produto: {info['produto']} | Quantidade: {info['quantidade']} | Total: R${info['total']}")
-  
+        print(f"Id: {info['id']} | Data: {info['data']} | Afiliado: {info['afiliado']} | Produto: {info['produto']} | Quantidade: {info['quantidade']} | Total: R${info['total']} | Status Pagamento: {info.get('pagamento_afiliado', '')}")
+
 class ControllerVenda:
     def __init__(self, sistema, tela):
         self.__sistema = sistema
@@ -430,7 +441,7 @@ class ControllerVenda:
     def __cadastrar(self):
         try:
             dados = self.__tela.ler_dados()
-            
+
             for item in self.__sistema.listaVendas:
                 if item.id == dados[0]:
                     raise Exception("Id repetido")
@@ -451,11 +462,10 @@ class ControllerVenda:
                     break
             if produto is None:
                 raise Exception("Produto não encontrado")
-            
-            venda = Venda(id, data, a, p, quantidade)
+
+            venda = Venda(id, data, afiliado, produto, quantidade)
             self.__sistema.registrarVenda(venda)
             print("Venda registrada com sucesso!")
-
         except Exception as e:
             print(f"Erro ao cadastrar: {e}")
 
@@ -466,9 +476,15 @@ class ControllerVenda:
             print("Nenhuma venda registrada.")
         else:
             for v in vendas:
-                info = {'id': v.id, 'data': v.data, 'afiliado': v.afiliado.nome,
-                        'produto': v.produto.nome, 'quantidade': v.quantidade,
-                        'total': v.total}
+                info = {
+                    'id': v.id,
+                    'data': v.data,
+                    'afiliado': v.afiliado.nome,
+                    'produto': v.produto.nome,
+                    'quantidade': v.quantidade,
+                    'total': v.total,
+                    'pagamento_afiliado': v.pagamento_afiliado
+                }
                 self.__tela.mostrar_venda(info)
 
 class Comissao:
@@ -602,19 +618,19 @@ class TelaPagamento:
     def mostrar_comissao(self, info):
         print(f"Recebedor: {info['recebedor']} | Valor: R${info['valor']:.2f} | "
               f"Venda: {info['venda']} | Tipo: {info['tipo']} | Vendedor: {info['vendedor']}")
-    
+
     def mostrar_pagamento(self, info):
         print(f"Id: {info['id']} | Data: {info['data']} | Valor Pago: {info['valorPago']}")
-    
+
 class ControllerPagamento:
     def __init__(self, sistema, tela):
         self.__sistema = sistema
         self.__tela = tela
-    
+
     @property
     def sistema(self):
         return self.__sistema
-    
+
     def executar(self):
         while True:
             opc = self.__tela.mostrar_menu()
@@ -650,10 +666,11 @@ class ControllerPagamento:
     def __processar_pagamentos(self):
         from datetime import date
         proximo_id = max([p.id for p in self.__sistema.listaPagamentos], default=0) + 1
-        for c in self.__sistema.listaComissoes:
+        for c in list(self.__sistema.listaComissoes):
             pagamento = Pagamento(proximo_id, date.today(),
                                   c.afiliado, c.valor)
             self.__sistema.listaPagamentos.append(pagamento)
+            c.venda.pagamento_afiliado = 'realizado'
             proximo_id += 1
         self.__sistema.listaComissoes.clear()
         print("Pagamentos processados com sucesso!")
@@ -746,6 +763,7 @@ class SistemaFinanceiroAfiliados:
             raise TypeError("venda deve ser do tipo Venda")
         self.__listaVendas.append(venda)
         venda.afiliado.vendas.append(venda)
+        # ao registrar, o atributo já vem como 'não realizado'
 
     def calcularComissoes(self):
         self.__listaComissoes.clear()
@@ -765,6 +783,10 @@ class SistemaFinanceiroAfiliados:
             comissao = Comissao(afiliado, afiliado, venda, 'direto', comissao_direta)
             self.__listaComissoes.append(comissao)
 
+        # marca todas as vendas envolvidas como aguardando confirmação
+        for c in self.__listaComissoes:
+            c.venda.pagamento_afiliado = 'aguardando confirmação'
+
     def processarPagamentos(self):
         from datetime import date
         next_id = max((p.id for p in self.__listaPagamentos), default=0) + 1
@@ -777,6 +799,8 @@ class SistemaFinanceiroAfiliados:
                 com.valor
             )
             self.__listaPagamentos.append(pag)
+            # marca venda como realizado
+            com.venda.pagamento_afiliado = 'realizado'
             next_id += 1
 
         self.__listaComissoes.clear()
