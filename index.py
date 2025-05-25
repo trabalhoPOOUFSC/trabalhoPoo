@@ -43,10 +43,22 @@ class Pessoa:
         self.__contato = value
 
 class Afiliado(Pessoa):
-    def __init__(self, id, nome, contato):
+    def __init__(self, id, nome, contato, parent=None):
         super().__init__(id, nome, contato)
+        if parent is not None and not isinstance(parent, Afiliado):
+            raise TypeError("parent deve ser do tipo Afiliado ou None")
+        self.__parent = parent
         self.__vendas = []
-        self.__referrals = []
+
+    @property
+    def parent(self):
+        return self.__parent
+
+    @parent.setter
+    def parent(self, value):
+        if value is not None and not isinstance(value, Afiliado):
+            raise TypeError("parent deve ser do tipo Afiliado ou None")
+        self.__parent = value
 
     @property
     def vendas(self):
@@ -61,37 +73,15 @@ class Afiliado(Pessoa):
                 raise TypeError("Cada item em vendas deve ser do tipo Venda")
         self.__vendas = value
 
-    @property
-    def referrals(self):
-        return self.__referrals
-
-    @referrals.setter
-    def referrals(self, value):
-        if not isinstance(value, list):
-            raise TypeError("referrals deve ser uma lista de Afiliado")
-        for item in value:
-            if not isinstance(item, Afiliado):
-                raise TypeError("Cada item em referrals deve ser do tipo Afiliado")
-        self.__referrals = value
-
-    def calcularComissao(self):
-        pass
-
-    def adicionarReferral(self, referral):
-        if not isinstance(referral, Afiliado):
-            raise TypeError("referral deve ser do tipo Afiliado")
-        self.__referrals.append(referral)
-
 class TelaAfiliado:
     def mostrar_menu(self):
         print("\n=== Menu Afiliados ===")
         print("1. Cadastrar afiliado")
-        print("2. Adicionar afiliado referral")
-        print("3. Listar afiliado")
+        print("2. Listar afiliado")
         print("0. Voltar")
         return input("Escolha uma opção: ")
     
-    def ler_dados(self, is_referral):
+    def ler_dados(self):
         id = int(input("Id: ").strip())
         if not id:
             raise ValueError("Id é obrigatório e não pode ser vazio")
@@ -101,17 +91,14 @@ class TelaAfiliado:
         contato = input("Contato: ").strip()
         if not contato:
             raise ValueError("Contato é obrigatório e não pode ser vazio")
-        parent_id = None
-        if is_referral:
-            parent_id = int(input("parent_id: ").strip())
-            if not parent_id:
-                raise ValueError("ID do afiliado 'pai' é obrigatório e não pode ser vazio")
+        parent_id = input("Parent Id: ").strip()
+        if not parent_id:
+            parent_id = None
 
         return id, nome, contato, parent_id
 
     def mostrar_afiliado(self, info):
-        referrals = ', '.join(map(str, info['referrals']))
-        print(f"Id: {info['id']} | Nome: {info['nome']} | contato: {info['contato']} | Referrals: {referrals}")
+        print(f"Id: {info['id']} | Nome: {info['nome']} | contato: {info['contato']} | Parent Id: {info['parent']}")
 
 class ControllerAfiliado:
     def __init__(self, sistema, tela):
@@ -128,32 +115,30 @@ class ControllerAfiliado:
             if opc == '1':
                 self.__cadastrar()
             elif opc == '2':
-                self.__cadastrar(referral=True)
-            elif opc == '3':
                 self.__listar()
             elif opc == '0':
                 break
             else:
                 print("Opção inválida!")
             
-    def __cadastrar(self, referral = False):
+    def __cadastrar(self):
         try:
-            dados = self.__tela.ler_dados(referral)
+            dados = self.__tela.ler_dados()
+            
             id, nome, contato, parent_id = dados
             parent = None
 
             for a in self.__sistema.listaAfiliados:
                 if a.id == id:
                     raise Exception("ID repetido")
-                if referral and parent_id == a.id:
+                if a.id == int(parent_id):
                     parent = a
 
-            if referral and not parent:
-                raise Exception("ID do afiliado 'pai' não encontrado")
-            
-            afiliado = Afiliado(id, nome, contato)
-            if parent:
-                parent.adicionarReferral(afiliado)
+            if parent_id and not parent:
+                raise Exception("Afiliado não encontrado")
+
+            afiliado = Afiliado(id, nome, contato, parent)
+
             self.__sistema.cadastrarAfiliado(afiliado)
             print("Afiliado cadastrado com sucesso!")
         except Exception as e:
@@ -166,10 +151,10 @@ class ControllerAfiliado:
             print("Nenhum afiliado cadastrado.")
         else:
             for a in afiliados:
-                referrals = []
-                for r in a.referrals:
-                    referrals.append(r.id)
-                info = {'id': a.id, 'nome': a.nome, 'contato': a.contato, 'referrals': referrals}
+                if a.parent == None:
+                    info = {'id': a.id, 'nome': a.nome, 'contato': a.contato, 'parent': None}
+                else:
+                    info = {'id': a.id, 'nome': a.nome, 'contato': a.contato, 'parent': a.parent.id}
                 self.__tela.mostrar_afiliado(info)
 
 class Produto:
@@ -487,65 +472,48 @@ class ControllerVenda:
                 self.__tela.mostrar_venda(info)
 
 class Comissao:
-    def __init__(self, afiliado, venda, valorDireto, valorIndireto):
-        if not isinstance(afiliado, Afiliado):
-            raise TypeError("afiliado deve ser do tipo Afiliado")
+    def __init__(self, vendedor, recebedor, venda, tipo, valor):
+        if not isinstance(vendedor, Afiliado):
+            raise TypeError("vendedor deve ser do tipo Afiliado")
+        if not isinstance(recebedor, Afiliado):
+            raise TypeError("recebedor deve ser do tipo Afiliado")
         if not isinstance(venda, Venda):
             raise TypeError("venda deve ser do tipo Venda")
-        if not isinstance(valorDireto, (int, float)):
-            raise TypeError("valorDireto deve ser numérico")
-        if not isinstance(valorIndireto, (int, float)):
-            raise TypeError("valorIndireto deve ser numérico")
-        self.__afiliado = afiliado
+        if not isinstance(tipo, str) or tipo not in ("direto", "indireto"):
+            raise ValueError("tipo deve ser a string 'direto' ou 'indireto'")
+        if not isinstance(valor, (int, float)):
+            raise TypeError("valor deve ser numérico")
+        self.__vendedor = vendedor
+        self.__recebedor = recebedor
         self.__venda = venda
-        self.__valorDireto = float(valorDireto)
-        self.__valorIndireto = float(valorIndireto)
+        self.__tipo = tipo
+        self.__valor = float(valor)
 
     @property
-    def afiliado(self):
-        return self.__afiliado
+    def vendedor(self):
+        return self.__vendedor
 
-    @afiliado.setter
-    def afiliado(self, value):
-        if not isinstance(value, Afiliado):
-            raise TypeError("afiliado deve ser do tipo Afiliado")
-        self.__afiliado = value
+    @property
+    def recebedor(self):
+        return self.__recebedor
 
     @property
     def venda(self):
         return self.__venda
 
-    @venda.setter
-    def venda(self, value):
-        if not isinstance(value, Venda):
-            raise TypeError("venda deve ser do tipo Venda")
-        self.__venda = value
+    @property
+    def tipo(self):
+        return self.__tipo
 
     @property
-    def valorDireto(self):
-        return self.__valorDireto
-
-    @valorDireto.setter
-    def valorDireto(self, value):
-        if not isinstance(value, (int, float)):
-            raise TypeError("valorDireto deve ser numérico")
-        self.__valorDireto = float(value)
-
-    @property
-    def valorIndireto(self):
-        return self.__valorIndireto
-
-    @valorIndireto.setter
-    def valorIndireto(self, value):
-        if not isinstance(value, (int, float)):
-            raise TypeError("valorIndireto deve ser numérico")
-        self.__valorIndireto = float(value)
+    def valor(self):
+        return self.__valor
 
     def calcular(self):
-        return self.valorDireto + self.valorIndireto
+        return self.__valor
 
 class Pagamento:
-    def __init__(self, id, data, afiliado, valorPago, status):
+    def __init__(self, id, data, afiliado, valorPago):
         if not isinstance(id, int):
             raise TypeError("id deve ser int")
         if not isinstance(data, date):
@@ -554,13 +522,10 @@ class Pagamento:
             raise TypeError("afiliado deve ser do tipo Afiliado")
         if not isinstance(valorPago, (int, float)):
             raise TypeError("valorPago deve ser numérico")
-        if not isinstance(status, str):
-            raise TypeError("status deve ser str")
         self.__id = id
         self.__data = data
         self.__afiliado = afiliado
         self.__valorPago = float(valorPago)
-        self.__status = status
 
     @property
     def id(self):
@@ -602,25 +567,15 @@ class Pagamento:
             raise TypeError("valorPago deve ser numérico")
         self.__valorPago = float(value)
 
-    @property
-    def status(self):
-        return self.__status
-
-    @status.setter
-    def status(self, value):
-        if not isinstance(value, str):
-            raise TypeError("status deve ser str")
-        self.__status = value
-
     def processar(self):
         pass
 
 class TelaPagamento:
     def mostrar_menu(self):
         print("\n=== Menu Pagamento ===")
-        print("1. Pagar Afiliado")
-        print("2. Pagar Todos Os Afiliados")
-        print("3. Processar Pagamento")
+        print("1. Gerar Comissões")
+        print("2. Listar Comissões")
+        print("3. Processar Pagamento das Comissões")
         print("0. Voltar")
         return input("Escolha uma opção: ")
 
@@ -642,13 +597,14 @@ class TelaPagamento:
         if not valorPago:
             raise ValueError("Valor pago é obrigatório e não pode ser vazio")
         
-        status = input("Status: ").strip()
-        if not status:
-            raise ValueError("Status é obrigatório e não pode ser vazio")
-        return id, data, afiliado_id, valorPago, status
+        return id, data, afiliado_id, valorPago
+
+    def mostrar_comissao(self, info):
+        print(f"Recebedor: {info['recebedor']} | Valor: R${info['valor']:.2f} | "
+              f"Venda: {info['venda']} | Tipo: {info['tipo']} | Vendedor: {info['vendedor']}")
     
     def mostrar_pagamento(self, info):
-        print(f"Id: {info['id']} | Data: {info['data']} | Valor Pago: {info['valorPago']} | status: {info['status']}")
+        print(f"Id: {info['id']} | Data: {info['data']} | Valor Pago: {info['valorPago']}")
     
 class ControllerPagamento:
     def __init__(self, sistema, tela):
@@ -663,59 +619,44 @@ class ControllerPagamento:
         while True:
             opc = self.__tela.mostrar_menu()
             if opc == '1':
-                self.adicionar_pagamento()
+                self.__gerar_comissoes()
             elif opc == '2':
-                self.__listar()
+                self.__listar_comissoes()
             elif opc == '3':
-                self.processar_pagamento()
+                self.__processar_pagamentos()
             elif opc == '0':
                 break
             else:
                 print("Opção inválida!")
 
-    def adicionar_pagamento(self):
-        try:
-            dados = self.__tela.ler_dados()
-            
-            for item in self.__sistema.listaPagamentos:
-                    if item.id == dados[0]:
-                        raise Exception("Id repetido")
-            id, data, afiliado_id, valorPago, status = dados
+    def __gerar_comissoes(self):
+        self.__sistema.calcularComissoes()
+        print("Comissões geradas com sucesso!")
 
-            afiliado = None
-            for a in self.__sistema.listaAfiliados:
-                if a.id == afiliado_id:
-                    afiliado = a
-                    break
-            if afiliado is None:
-                raise Exception("Afiliado não encontrado")
-            
-            pagamento = Pagamento(id, data, afiliado, valorPago, status)
-            self.__sistema.listaPagamentos.append(pagamento)
-            print("Venda registrada com sucesso!")
-
-        except Exception as e:
-            print(f"Erro ao cadastrar: {e}")
-    
-    def __listar(self):
-        pagamentos = self.__sistema.listaPagamentos
-        print("\n=== Lista de Vendas ===")
-        if not pagamentos:
-            print("Nenhuma venda registrada.")
-        else:
-            for p in pagamentos:
-                info = {'id': p.id, 'data': p.data, 'afiliado': p.afiliado.nome,
-                         'valorPago': p.valorPago, 'status': p.status}
-                self.__tela.mostrar_pagamento(info)
-
-    # fazer
-    def processar_pagamento(self):
-        valorTotalPagamentos = 0
-        for pagamento in self.__sistema.listaPagamentos:
-            pagamento.processar()
-            valorTotalPagamentos += pagamento.valorPago
-            print("Pagamento processado com sucesso!")
+    def __listar_comissoes(self):
+        if not self.__sistema.listaComissoes:
+            print("Nenhuma comissão gerada.")
             return
+        for c in self.__sistema.listaComissoes:
+            info = {
+                'vendedor': f'{c.vendedor.nome} - {c.vendedor.id}',
+                'recebedor': f'{c.recebedor.nome} - {c.recebedor.id}',
+                'venda': c.venda.id,
+                'tipo': c.tipo,
+                'valor': c.valor
+            }
+            self.__tela.mostrar_comissao(info)
+
+    def __processar_pagamentos(self):
+        from datetime import date
+        proximo_id = max([p.id for p in self.__sistema.listaPagamentos], default=0) + 1
+        for c in self.__sistema.listaComissoes:
+            pagamento = Pagamento(proximo_id, date.today(),
+                                  c.afiliado, c.valor)
+            self.__sistema.listaPagamentos.append(pagamento)
+            proximo_id += 1
+        self.__sistema.listaComissoes.clear()
+        print("Pagamentos processados com sucesso!")
 
 class SistemaFinanceiroAfiliados:
     def __init__(self):
@@ -723,6 +664,7 @@ class SistemaFinanceiroAfiliados:
         self.__listaProdutos = []
         self.__listaVendas = []
         self.__listaPagamentos = []
+        self.__listaComissoes = []
 
     @property
     def listaAfiliados(self):
@@ -776,6 +718,19 @@ class SistemaFinanceiroAfiliados:
                 raise TypeError("Cada item em listaPagamentos deve ser do tipo Pagamento")
         self.__listaPagamentos = value
 
+    @property
+    def listaComissoes(self):
+        return self.__listaComissoes
+
+    @listaComissoes.setter
+    def listaComissoes(self, value):
+        if not isinstance(value, list):
+            raise TypeError("listaComissoes deve ser uma lista de Comissão")
+        for item in value:
+            if not isinstance(item, Comissao):
+                raise TypeError("Cada item em listaComissoes deve ser do tipo Comissao")
+        self.__listaComissoes = value
+
     def cadastrarAfiliado(self, afiliado):
         if not isinstance(afiliado, Afiliado):
             raise TypeError("afiliado deve ser do tipo Afiliado")
@@ -793,10 +748,38 @@ class SistemaFinanceiroAfiliados:
         venda.afiliado.vendas.append(venda)
 
     def calcularComissoes(self):
-        pass
+        self.__listaComissoes.clear()
+        for venda in self.listaVendas:
+            total = venda.total
+            afiliado = venda.afiliado
+            afiliado_parent = afiliado.parent
+
+            comissao_direta = total * 0.05
+            comissao_indireta = total * 0.01 if afiliado_parent is not None else 0
+
+            if afiliado_parent:
+                comissao_parent = Comissao(afiliado, afiliado_parent,
+                                           venda, 'indireto', comissao_indireta)
+                self.__listaComissoes.append(comissao_parent)
+            
+            comissao = Comissao(afiliado, afiliado, venda, 'direto', comissao_direta)
+            self.__listaComissoes.append(comissao)
 
     def processarPagamentos(self):
-        pass
+        from datetime import date
+        next_id = max((p.id for p in self.__listaPagamentos), default=0) + 1
+
+        for com in list(self.__listaComissoes):
+            pag = Pagamento(
+                next_id,
+                date.today(),
+                com.afiliado,
+                com.valor
+            )
+            self.__listaPagamentos.append(pag)
+            next_id += 1
+
+        self.__listaComissoes.clear()
 
 class Relatorio:
     def __init__(self, periodo, afiliado=None):
@@ -873,7 +856,7 @@ class TelaRelatorio:
             return
         for pagamento in pagamentos:
             print(f"Pagamento ID: {pagamento.id} | Data: {pagamento.data} | Afiliado: {pagamento.afiliado.nome} | "
-                  f"Valor: {pagamento.valorPago} | Status: {pagamento.status}")
+                  f"Valor: {pagamento.valorPago}")
     
 class ControllerRelatorio:
     def __init__(self, sistema, tela):
