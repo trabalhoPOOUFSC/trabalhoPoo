@@ -592,6 +592,7 @@ class TelaPagamento:
         print("1. Gerar Comissões")
         print("2. Listar Comissões")
         print("3. Processar Pagamento das Comissões")
+        print("4. Listar Pagamentos Efetuados")
         print("0. Voltar")
         return input("Escolha uma opção: ")
 
@@ -620,7 +621,7 @@ class TelaPagamento:
               f"Venda: {info['venda']} | Tipo: {info['tipo']} | Vendedor: {info['vendedor']}")
 
     def mostrar_pagamento(self, info):
-        print(f"Id: {info['id']} | Data: {info['data']} | Valor Pago: {info['valorPago']}")
+        print(f"ID Pagamento: {info['id']} | Data: {info['data']} | Afiliado: {info['afiliado']} | Valor Pago: R${info['valorPago']:.2f}")
 
 class ControllerPagamento:
     def __init__(self, sistema, tela):
@@ -640,6 +641,8 @@ class ControllerPagamento:
                 self.__listar_comissoes()
             elif opc == '3':
                 self.__processar_pagamentos()
+            elif opc == '4':
+                self.__listar_pagamentos()
             elif opc == '0':
                 break
             else:
@@ -664,16 +667,22 @@ class ControllerPagamento:
             self.__tela.mostrar_comissao(info)
 
     def __processar_pagamentos(self):
-        from datetime import date
-        proximo_id = max([p.id for p in self.__sistema.listaPagamentos], default=0) + 1
-        for c in list(self.__sistema.listaComissoes):
-            pagamento = Pagamento(proximo_id, date.today(),
-                                  c.afiliado, c.valor)
-            self.__sistema.listaPagamentos.append(pagamento)
-            c.venda.pagamento_afiliado = 'realizado'
-            proximo_id += 1
-        self.__sistema.listaComissoes.clear()
+        self.__sistema.processarPagamentos()
         print("Pagamentos processados com sucesso!")
+
+    def __listar_pagamentos(self):
+        pagamentos = self.__sistema.listaPagamentos
+        if not pagamentos:
+            print("Nenhum pagamento efetuado.")
+            return
+        for p in pagamentos:
+            info = {
+                'id': p.id,
+                'data': p.data,
+                'afiliado': f"{p.afiliado.nome} (ID: {p.afiliado.id})",
+                'valorPago': p.valorPago
+            }
+            self.__tela.mostrar_pagamento(info)
 
 class SistemaFinanceiroAfiliados:
     def __init__(self):
@@ -763,7 +772,6 @@ class SistemaFinanceiroAfiliados:
             raise TypeError("venda deve ser do tipo Venda")
         self.__listaVendas.append(venda)
         venda.afiliado.vendas.append(venda)
-        # ao registrar, o atributo já vem como 'não realizado'
 
     def calcularComissoes(self):
         self.__listaComissoes.clear()
@@ -783,7 +791,6 @@ class SistemaFinanceiroAfiliados:
             comissao = Comissao(afiliado, afiliado, venda, 'direto', comissao_direta)
             self.__listaComissoes.append(comissao)
 
-        # marca todas as vendas envolvidas como aguardando confirmação
         for c in self.__listaComissoes:
             c.venda.pagamento_afiliado = 'aguardando confirmação'
 
@@ -795,11 +802,10 @@ class SistemaFinanceiroAfiliados:
             pag = Pagamento(
                 next_id,
                 date.today(),
-                com.afiliado,
+                com.recebedor,
                 com.valor
             )
             self.__listaPagamentos.append(pag)
-            # marca venda como realizado
             com.venda.pagamento_afiliado = 'realizado'
             next_id += 1
 
@@ -942,7 +948,6 @@ class ControllerRelatorio:
             print(f"Erro ao gerar relatório financeiro: {e}")
 
 class ControladorSistema:
-    """Controlador Geral: Gerencia todos os controllers do sistema."""
     def __init__(self):
         self.__sistema = SistemaFinanceiroAfiliados()
         self.__controller_produto = ControllerProduto(self.__sistema, TelaProduto())
