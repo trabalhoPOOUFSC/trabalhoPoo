@@ -756,133 +756,6 @@ class ControllerPagamento:
             }
             self.__tela.mostrar_pagamento(info)
 
-class SistemaFinanceiroAfiliados:
-    def __init__(self):
-        self.__listaAfiliados = []
-        self.__listaProdutos = []
-        self.__listaVendas = []
-        self.__listaPagamentos = []
-        self.__listaComissoes = []
-
-    @property
-    def listaAfiliados(self):
-        return self.__listaAfiliados
-
-    @listaAfiliados.setter
-    def listaAfiliados(self, value):
-        if not isinstance(value, list):
-            raise TypeError("listaAfiliados deve ser uma lista de Afiliado")
-        for item in value:
-            if not isinstance(item, Afiliado):
-                raise TypeError("Cada item em listaAfiliados deve ser do tipo Afiliado")
-        self.__listaAfiliados = value
-
-    @property
-    def listaProdutos(self):
-        return self.__listaProdutos
-
-    @listaProdutos.setter
-    def listaProdutos(self, value):
-        if not isinstance(value, list):
-            raise TypeError("listaProdutos deve ser uma lista de Produto")
-        for item in value:
-            if not isinstance(item, Produto):
-                raise TypeError("Cada item em listaProdutos deve ser do tipo Produto")
-        self.__listaProdutos = value
-
-    @property
-    def listaVendas(self):
-        return self.__listaVendas
-
-    @listaVendas.setter
-    def listaVendas(self, value):
-        if not isinstance(value, list):
-            raise TypeError("listaVendas deve ser uma lista de Venda")
-        for item in value:
-            if not isinstance(item, Venda):
-                raise TypeError("Cada item em listaVendas deve ser do tipo Venda")
-        self.__listaVendas = value
-
-    @property
-    def listaPagamentos(self):
-        return self.__listaPagamentos
-
-    @listaPagamentos.setter
-    def listaPagamentos(self, value):
-        if not isinstance(value, list):
-            raise TypeError("listaPagamentos deve ser uma lista de Pagamento")
-        for item in value:
-            if not isinstance(item, Pagamento):
-                raise TypeError("Cada item em listaPagamentos deve ser do tipo Pagamento")
-        self.__listaPagamentos = value
-
-    @property
-    def listaComissoes(self):
-        return self.__listaComissoes
-
-    @listaComissoes.setter
-    def listaComissoes(self, value):
-        if not isinstance(value, list):
-            raise TypeError("listaComissoes deve ser uma lista de Comissão")
-        for item in value:
-            if not isinstance(item, Comissao):
-                raise TypeError("Cada item em listaComissoes deve ser do tipo Comissao")
-        self.__listaComissoes = value
-
-    def cadastrarAfiliado(self, afiliado):
-        if not isinstance(afiliado, Afiliado):
-            raise TypeError("afiliado deve ser do tipo Afiliado")
-        self.__listaAfiliados.append(afiliado)
-
-    def cadastrarProduto(self, produto):
-        if not isinstance(produto, Produto):
-            raise TypeError("produto deve ser do tipo Produto")
-        self.__listaProdutos.append(produto)
-
-    def registrarVenda(self, venda):
-        if not isinstance(venda, Venda):
-            raise TypeError("venda deve ser do tipo Venda")
-        self.__listaVendas.append(venda)
-        venda.afiliado.vendas.append(venda)
-
-    def calcularComissoes(self):
-        self.__listaComissoes.clear()
-        for venda in self.listaVendas:
-            total = venda.total
-            afiliado = venda.afiliado
-            afiliado_parent = afiliado.parent
-
-            comissao_direta = total * 0.05
-            comissao_indireta = total * 0.01 if afiliado_parent is not None else 0
-
-            if afiliado_parent:
-                comissao_parent = Comissao(afiliado, afiliado_parent,
-                                           venda, 'indireto', comissao_indireta)
-                self.__listaComissoes.append(comissao_parent)
-            
-            comissao = Comissao(afiliado, afiliado, venda, 'direto', comissao_direta)
-            self.__listaComissoes.append(comissao)
-
-        for c in self.__listaComissoes:
-            c.venda.pagamento_afiliado = 'aguardando confirmação'
-
-    def processarPagamentos(self):
-        from datetime import date
-        self.__listaPagamentos.clear()
-        next_id = max((p.id for p in self.__listaPagamentos), default=0) + 1
-        for com in list(self.__listaComissoes):
-            pag = Pagamento(
-                next_id,
-                date.today(),
-                com.recebedor,
-                com.valor
-            )
-            self.__listaPagamentos.append(pag)
-            com.venda.pagamento_afiliado = 'realizado'
-            next_id += 1
-
-        self.__listaComissoes.clear()
-
 class Relatorio:
     def __init__(self, periodo, afiliado=None):
         if not (isinstance(periodo, tuple) and len(periodo) == 2 and all(isinstance(d, date) for d in periodo)):
@@ -1035,6 +908,133 @@ class ControllerRelatorio:
             self.__tela.mostrar_relatorio_financeiro(pagamentos_filtrados)
         except Exception as e:
             print(f"Erro ao gerar relatório financeiro: {e}")
+
+class SistemaFinanceiroAfiliados:
+    def __init__(self):
+        self.__listaAfiliados = []
+        self.__listaProdutos = []
+        self.__listaVendas = []
+        self.__listaPagamentos = []
+        self.__listaComissoes = []
+
+    @property
+    def listaAfiliados(self):
+        return self.__listaAfiliados
+
+    @listaAfiliados.setter
+    def listaAfiliados(self, value):
+        if not isinstance(value, list):
+            raise TypeError("listaAfiliados deve ser uma lista de Afiliado")
+        for item in value:
+            if not isinstance(item, Afiliado):
+                raise TypeError("Cada item em listaAfiliados deve ser do tipo Afiliado")
+        self.__listaAfiliados = value
+
+    @property
+    def listaProdutos(self):
+        return self.__listaProdutos
+
+    @listaProdutos.setter
+    def listaProdutos(self, value):
+        if not isinstance(value, list):
+            raise TypeError("listaProdutos deve ser uma lista de Produto")
+        for item in value:
+            if not isinstance(item, Produto):
+                raise TypeError("Cada item em listaProdutos deve ser do tipo Produto")
+        self.__listaProdutos = value
+
+    @property
+    def listaVendas(self):
+        return self.__listaVendas
+
+    @listaVendas.setter
+    def listaVendas(self, value):
+        if not isinstance(value, list):
+            raise TypeError("listaVendas deve ser uma lista de Venda")
+        for item in value:
+            if not isinstance(item, Venda):
+                raise TypeError("Cada item em listaVendas deve ser do tipo Venda")
+        self.__listaVendas = value
+
+    @property
+    def listaPagamentos(self):
+        return self.__listaPagamentos
+
+    @listaPagamentos.setter
+    def listaPagamentos(self, value):
+        if not isinstance(value, list):
+            raise TypeError("listaPagamentos deve ser uma lista de Pagamento")
+        for item in value:
+            if not isinstance(item, Pagamento):
+                raise TypeError("Cada item em listaPagamentos deve ser do tipo Pagamento")
+        self.__listaPagamentos = value
+
+    @property
+    def listaComissoes(self):
+        return self.__listaComissoes
+
+    @listaComissoes.setter
+    def listaComissoes(self, value):
+        if not isinstance(value, list):
+            raise TypeError("listaComissoes deve ser uma lista de Comissão")
+        for item in value:
+            if not isinstance(item, Comissao):
+                raise TypeError("Cada item em listaComissoes deve ser do tipo Comissao")
+        self.__listaComissoes = value
+
+    def cadastrarAfiliado(self, afiliado):
+        if not isinstance(afiliado, Afiliado):
+            raise TypeError("afiliado deve ser do tipo Afiliado")
+        self.__listaAfiliados.append(afiliado)
+
+    def cadastrarProduto(self, produto):
+        if not isinstance(produto, Produto):
+            raise TypeError("produto deve ser do tipo Produto")
+        self.__listaProdutos.append(produto)
+
+    def registrarVenda(self, venda):
+        if not isinstance(venda, Venda):
+            raise TypeError("venda deve ser do tipo Venda")
+        self.__listaVendas.append(venda)
+        venda.afiliado.vendas.append(venda)
+
+    def calcularComissoes(self):
+        self.__listaComissoes.clear()
+        for venda in self.listaVendas:
+            total = venda.total
+            afiliado = venda.afiliado
+            afiliado_parent = afiliado.parent
+
+            comissao_direta = total * 0.05
+            comissao_indireta = total * 0.01 if afiliado_parent is not None else 0
+
+            if afiliado_parent:
+                comissao_parent = Comissao(afiliado, afiliado_parent,
+                                           venda, 'indireto', comissao_indireta)
+                self.__listaComissoes.append(comissao_parent)
+            
+            comissao = Comissao(afiliado, afiliado, venda, 'direto', comissao_direta)
+            self.__listaComissoes.append(comissao)
+
+        for c in self.__listaComissoes:
+            c.venda.pagamento_afiliado = 'aguardando confirmação'
+
+    def processarPagamentos(self):
+        from datetime import date
+        self.__listaPagamentos.clear()
+        next_id = max((p.id for p in self.__listaPagamentos), default=0) + 1
+        for com in list(self.__listaComissoes):
+            pag = Pagamento(
+                next_id,
+                date.today(),
+                com.recebedor,
+                com.valor
+            )
+            self.__listaPagamentos.append(pag)
+            com.venda.pagamento_afiliado = 'realizado'
+            next_id += 1
+
+        self.__listaComissoes.clear()
 
 class ControladorSistema:
     def __init__(self):
