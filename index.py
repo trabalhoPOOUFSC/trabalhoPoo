@@ -840,11 +840,23 @@ class Relatorio:
             raise TypeError("afiliado deve ser do tipo Afiliado ou None")
         self.__afiliado = value
 
-    def gerarRelatorioVendas(self):
-        pass
+    def gerarRelatorioVendas(self, vendas):
+        data_inicio, data_fim = self.periodo
+        vendas_filtradas = []
+        for venda in vendas:
+            if data_inicio <= venda.data <= data_fim:
+                if self.afiliado is None or venda.afiliado == self.afiliado:
+                    vendas_filtradas.append(venda)
+        return vendas_filtradas
 
-    def gerarRelatorioFinanceiro(self):
-        pass
+    def gerarRelatorioFinanceiro(self, pagamentos):
+        data_inicio, data_fim = self.periodo
+        pagamentos_filtrados = []
+        for pagamento in pagamentos:
+            if data_inicio <= pagamento.data <= data_fim:
+                if self.afiliado is None or pagamento.afiliado == self.afiliado:
+                    pagamentos_filtrados.append(pagamento)
+        return pagamentos_filtrados
 
 class TelaRelatorio:
     def mostrar_menu(self):
@@ -857,27 +869,31 @@ class TelaRelatorio:
     def ler_dados(self):
         data_inicial_str = input("Data inicial (YYYY-MM-DD): ").strip()
         if not data_inicial_str:
-            raise ValueError("Data inicial é obrigatório e não pode ser vazio")
+            raise ValueError("Data inicial é obrigatória e não pode ser vazia")
         data_inicial = date.fromisoformat(data_inicial_str)
 
         data_final_str = input("Data final (YYYY-MM-DD): ").strip()
         if not data_final_str:
-            raise ValueError("Data final é obrigatório e não pode ser vazio")
+            raise ValueError("Data final é obrigatória e não pode ser vazia")
         data_final = date.fromisoformat(data_final_str)
 
-        afiliado_id = int(input("Id do Afiliado: ").strip())
-        if not afiliado_id:
-            raise ValueError("Id do Afiliado é obrigatório e não pode ser vazio")
+        afiliado_id_str = input("Id do Afiliado (opcional, deixe em branco para todos): ").strip()
+        afiliado_id = None
+        if afiliado_id_str:
+            try:
+                afiliado_id = int(afiliado_id_str)
+            except ValueError:
+                raise ValueError("Id do Afiliado deve ser um número inteiro")
 
         return data_inicial, data_final, afiliado_id
-    
+
     def mostrar_relatorio_vendas(self, vendas):
         print("\n=== Relatório de Vendas ===")
         if not vendas:
             print("Nenhuma venda no período.")
             return
         for venda in vendas:
-            print(f"Venda ID: {venda.id} | Data: {venda.data} | Afiliado: {venda.afiliado.nome} | Valor: {venda.valor}")
+            print(f"ID: {venda.id} | Data: {venda.data} | Afiliado: {venda.afiliado.nome} | Produto: {venda.produto.nome} | Quantidade: {venda.quantidade} | Total: R${venda.total:.2f}")
 
     def mostrar_relatorio_financeiro(self, pagamentos):
         print("\n=== Relatório Financeiro ===")
@@ -885,9 +901,8 @@ class TelaRelatorio:
             print("Nenhum pagamento no período.")
             return
         for pagamento in pagamentos:
-            print(f"Pagamento ID: {pagamento.id} | Data: {pagamento.data} | Afiliado: {pagamento.afiliado.nome} | "
-                  f"Valor: {pagamento.valorPago}")
-    
+            print(f"ID: {pagamento.id} | Data: {pagamento.data} | Afiliado: {pagamento.afiliado.nome} | Valor Pago: R${pagamento.valorPago:.2f}")
+
 class ControllerRelatorio:
     def __init__(self, sistema, tela):
         self.__sistema = sistema
@@ -915,16 +930,17 @@ class ControllerRelatorio:
             data_inicial, data_final, afiliado_id = dados
 
             afiliado = None
-            for a in self.__sistema.listaAfiliados:
-                if a.id == afiliado_id:
-                    afiliado = a
-                    break
-            if afiliado is None:
-                raise Exception("Afiliado não encontrado")
+            if afiliado_id is not None:
+                for a in self.__sistema.listaAfiliados:
+                    if a.id == afiliado_id:
+                        afiliado = a
+                        break
+                if afiliado is None and afiliado_id is not None:
+                    raise Exception("Afiliado não encontrado")
             
             relatorio = Relatorio((data_inicial, data_final), afiliado)
-            vendas = relatorio.gerarRelatorioVendas()
-            self.__tela.mostrar_relatorio_vendas(vendas)
+            vendas_filtradas = relatorio.gerarRelatorioVendas(self.__sistema.listaVendas)
+            self.__tela.mostrar_relatorio_vendas(vendas_filtradas)
         except Exception as e:
             print(f"Erro ao gerar relatório de vendas: {e}")
 
@@ -934,16 +950,17 @@ class ControllerRelatorio:
             data_inicial, data_final, afiliado_id = dados
 
             afiliado = None
-            for a in self.__sistema.listaAfiliados:
-                if a.id == afiliado_id:
-                    afiliado = a
-                    break
-            if afiliado is None:
-                raise Exception("Afiliado não encontrado")
+            if afiliado_id is not None:
+                for a in self.__sistema.listaAfiliados:
+                    if a.id == afiliado_id:
+                        afiliado = a
+                        break
+                if afiliado is None and afiliado_id is not None:
+                    raise Exception("Afiliado não encontrado")
             
             relatorio = Relatorio((data_inicial, data_final), afiliado)
-            pagamentos = relatorio.gerarRelatorioFinanceiro()
-            self.__tela.mostrar_relatorio_financeiro(pagamentos)
+            pagamentos_filtrados = relatorio.gerarRelatorioFinanceiro(self.__sistema.listaPagamentos)
+            self.__tela.mostrar_relatorio_financeiro(pagamentos_filtrados)
         except Exception as e:
             print(f"Erro ao gerar relatório financeiro: {e}")
 
