@@ -651,8 +651,10 @@ class ControllerVenda:
                     break
             
             if not venda:
-                print("Venda não encontrada!")
-                return
+                raise Exception("Venda não encontrada!")
+
+            if venda.pagamento_afiliado == 'realizado':
+                raise Exception('Não é permitido modificar venda com status pagamento realizado!')
                 
             print("\nDeixe em branco para manter o valor atual")
 
@@ -704,8 +706,7 @@ class ControllerVenda:
                     break
             
             if not venda:
-                print("Venda não encontrada!")
-                return
+                raise Exception("Venda não encontrada!")
 
             venda.afiliado.vendas.remove(venda)
 
@@ -816,9 +817,6 @@ class Pagamento:
         if not isinstance(value, (int, float)):
             raise TypeError("valorPago deve ser numérico")
         self.__valorPago = float(value)
-
-    def processar(self):
-        pass
 
 class TelaPagamento:
     def mostrar_menu(self):
@@ -1163,6 +1161,9 @@ class SistemaFinanceiroAfiliados:
     def calcularComissoes(self):
         self.__listaComissoes.clear()
         for venda in self.listaVendas:
+            if venda.pagamento_afiliado != 'não realizado':
+                continue
+
             total = venda.total
             afiliado = venda.afiliado
             afiliado_parent = afiliado.parent
@@ -1182,8 +1183,6 @@ class SistemaFinanceiroAfiliados:
             c.venda.pagamento_afiliado = 'aguardando confirmação'
 
     def processarPagamentos(self):
-        from datetime import date
-        self.__listaPagamentos.clear()
         next_id = max((p.id for p in self.__listaPagamentos), default=0) + 1
         for com in list(self.__listaComissoes):
             pag = Pagamento(
