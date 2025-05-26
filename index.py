@@ -688,7 +688,7 @@ class ControllerVenda:
             if nova_qtde:
                 venda.quantidade = int(nova_qtde)
 
-            venda.__calcularTotal()
+            venda.calcularTotal()
             venda.pagamento_afiliado = 'não realizado'
             print("Venda atualizada com sucesso!")
             
