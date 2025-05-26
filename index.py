@@ -449,7 +449,7 @@ class Venda:
         self.__afiliado = afiliado
         self.__produto = produto
         self.__quantidade = quantidade
-        self.__total = self.__calcularTotal()
+        self.__total = self.calcularTotal()
         self.__pagamento_afiliado = 'não realizado'
 
     @property
@@ -491,7 +491,7 @@ class Venda:
         if not isinstance(value, Produto):
             raise TypeError("produto deve ser do tipo Produto")
         self.__produto = value
-        self.__calcularTotal()
+        self.calcularTotal()
 
     @property
     def quantidade(self):
@@ -502,7 +502,7 @@ class Venda:
         if not isinstance(value, int):
             raise TypeError("quantidade deve ser int")
         self.__quantidade = value
-        self.__calcularTotal()
+        self.calcularTotal()
 
     @property
     def total(self):
@@ -524,7 +524,7 @@ class Venda:
             raise ValueError("pagamento_afiliado deve ser 'não realizado', 'aguardando confirmação' ou 'realizado'")
         self.__pagamento_afiliado = value
 
-    def __calcularTotal(self):
+    def calcularTotal(self):
         self.__total = self.quantidade * self.produto.preco
         return self.__total
 
