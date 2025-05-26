@@ -289,6 +289,8 @@ class TelaProduto:
         print("\n=== Menu Produtos ===")
         print("1. Cadastrar produto")
         print("2. Listar produtos")
+        print("3. Modificar produto")
+        print("4. Excluir produto")
         print("0. Voltar")
         return input("Escolha uma opção: ")
 
@@ -328,6 +330,10 @@ class ControllerProduto:
                 self.__cadastrar()
             elif opc == '2':
                 self.__listar()
+            elif opc == '3':
+                self.__modificar()
+            elif opc == '4':
+                self.__excluir()
             elif opc == '0':
                 break
             else:
@@ -356,6 +362,75 @@ class ControllerProduto:
             for p in produtos:
                 info = {'codigo': p.codigo, 'nome': p.nome, 'descricao': p.descricao, 'preco': p.preco}
                 self.__tela.mostrar_produto(info)
+
+    def __modificar(self):
+        try:
+            codigo = input("Digite o código do produto: ").strip()
+            produto = None
+
+            for p in self.__sistema.listaProdutos:
+                if p.codigo == codigo:
+                    produto = p
+                    break
+            
+            if not produto:
+                print("Produto não encontrado!")
+                return
+
+            print("\nDeixe em branco para manter o valor atual")
+
+            novo_codigo = input(f"Código atual ({produto.codigo}): ").strip()
+            if novo_codigo:
+                for p in self.__sistema.listaProdutos:
+                    if p != produto and p.codigo == novo_codigo:
+                        raise ValueError("Código já está em uso!")
+                produto.codigo = novo_codigo
+
+            novo_nome = input(f"Nome atual ({produto.nome}): ").strip()
+            if novo_nome:
+                produto.nome = novo_nome
+                
+            nova_desc = input(f"Descrição atual ({produto.descricao}): ").strip()
+            if nova_desc:
+                produto.descricao = nova_desc
+                
+            novo_preco = input(f"Preço atual ({produto.preco}): ").strip()
+            if novo_preco:
+                produto.preco = float(novo_preco)
+            
+            print("Produto atualizado com sucesso!")
+            
+        except Exception as e:
+            print(f"Erro: {e}")
+
+    def __excluir(self):
+        try:
+            codigo = input("Digite o código do produto: ").strip()
+            produto = None
+            
+            for p in self.__sistema.listaProdutos:
+                if p.codigo == codigo:
+                    produto = p
+                    break
+            
+            if not produto:
+                print("Produto não encontrado!")
+                return
+
+            tem_venda = False
+            for venda in self.__sistema.listaVendas:
+                if venda.produto == produto:
+                    tem_venda = True
+                    break
+            
+            if tem_venda:
+                raise ValueError("Produto está vinculado a vendas!")
+                
+            self.__sistema.listaProdutos.remove(produto)
+            print("Produto excluído com sucesso!")
+            
+        except Exception as e:
+            print(f"Erro: {e}")
 
 class Venda:
     def __init__(self, id, data, afiliado, produto, quantidade):
@@ -458,6 +533,8 @@ class TelaVenda:
         print("\n=== Menu vendas ===")
         print("1. Registrar venda")
         print("2. Listar vendas")
+        print("3. Modificar venda") 
+        print("4. Excluir venda") 
         print("0. Voltar")
         return input("Escolha uma opção: ")
 
@@ -505,6 +582,10 @@ class ControllerVenda:
                 self.__cadastrar()
             elif opc == '2':
                 self.__listar()
+            elif opc == '3':
+                self.__modificar()
+            elif opc == '4':
+                self.__excluir()
             elif opc == '0':
                 break
             else:
@@ -558,6 +639,87 @@ class ControllerVenda:
                     'pagamento_afiliado': v.pagamento_afiliado
                 }
                 self.__tela.mostrar_venda(info)
+
+    def __modificar(self):
+        try:
+            venda_id = int(input("ID da venda: "))
+            venda = None
+
+            for v in self.__sistema.listaVendas:
+                if v.id == venda_id:
+                    venda = v
+                    break
+            
+            if not venda:
+                print("Venda não encontrada!")
+                return
+                
+            print("\nDeixe em branco para manter o valor atual")
+
+            nova_data = input(f"Data atual ({venda.data}): ").strip()
+            if nova_data:
+                venda.data = date.fromisoformat(nova_data)
+
+            novo_afiliado_id = input(f"ID Afiliado atual ({venda.afiliado.id}): ").strip()
+            if novo_afiliado_id:
+                afiliado = None
+                for a in self.__sistema.listaAfiliados:
+                    if a.id == int(novo_afiliado_id):
+                        afiliado = a
+                        break
+                if not afiliado:
+                    raise ValueError("Afiliado não encontrado!")
+                venda.afiliado = afiliado
+
+            novo_produto_cod = input(f"Código Produto atual ({venda.produto.codigo}): ").strip()
+            if novo_produto_cod:
+                produto = None
+                for p in self.__sistema.listaProdutos:
+                    if p.codigo == novo_produto_cod:
+                        produto = p
+                        break
+                if not produto:
+                    raise ValueError("Produto não encontrado!")
+                venda.produto = produto
+
+            nova_qtde = input(f"Quantidade atual ({venda.quantidade}): ").strip()
+            if nova_qtde:
+                venda.quantidade = int(nova_qtde)
+
+            venda.calcularTotal()
+            venda.pagamento_afiliado = 'não realizado'
+            print("Venda atualizada com sucesso!")
+            
+        except Exception as e:
+            print(f"Erro: {e}")
+
+    def __excluir(self):
+        try:
+            venda_id = int(input("ID da venda: "))
+            venda = None
+
+            for v in self.__sistema.listaVendas:
+                if v.id == venda_id:
+                    venda = v
+                    break
+            
+            if not venda:
+                print("Venda não encontrada!")
+                return
+
+            venda.afiliado.vendas.remove(venda)
+
+            novas_comissoes = []
+            for c in self.__sistema.listaComissoes:
+                if c.venda != venda:
+                    novas_comissoes.append(c)
+            self.__sistema.listaComissoes = novas_comissoes
+
+            self.__sistema.listaVendas.remove(venda)
+            print("Venda excluída com sucesso!")
+            
+        except Exception as e:
+            print(f"Erro: {e}")
 
 class Comissao:
     def __init__(self, vendedor, recebedor, venda, tipo, valor):
