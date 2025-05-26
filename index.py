@@ -796,8 +796,8 @@ class SistemaFinanceiroAfiliados:
 
     def processarPagamentos(self):
         from datetime import date
+        self.__listaPagamentos.clear()
         next_id = max((p.id for p in self.__listaPagamentos), default=0) + 1
-
         for com in list(self.__listaComissoes):
             pag = Pagamento(
                 next_id,
@@ -862,7 +862,7 @@ class TelaRelatorio:
     def mostrar_menu(self):
         print("\n=== Menu Relatórios ===")
         print("1. Gerar Relatório de Vendas")
-        print("2. Gerar Relatório Financeiro")
+        print("2. Gerar Relatório de Pagamentos")
         print("0. Voltar")
         return input("Escolha uma opção: ")
 
