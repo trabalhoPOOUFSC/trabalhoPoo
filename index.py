@@ -78,6 +78,8 @@ class TelaAfiliado:
         print("\n=== Menu Afiliados ===")
         print("1. Cadastrar afiliado")
         print("2. Listar afiliado")
+        print("3. Modificar afiliado")
+        print("4. Excluir afiliado")
         print("0. Voltar")
         return input("Escolha uma opção: ")
     
@@ -116,6 +118,10 @@ class ControllerAfiliado:
                 self.__cadastrar()
             elif opc == '2':
                 self.__listar()
+            elif opc =='3':
+                self.__modificar()
+            elif opc == '4':
+                self.__excluir()
             elif opc == '0':
                 break
             else:
@@ -156,6 +162,72 @@ class ControllerAfiliado:
                 else:
                     info = {'id': a.id, 'nome': a.nome, 'contato': a.contato, 'parent': a.parent.id}
                 self.__tela.mostrar_afiliado(info)
+
+    def __modificar(self):
+        try:
+            id = int(input("Digite o ID do afiliado que deseja modificar: ").strip())
+            afiliado = None
+
+            for a in self.__sistema.listaAfiliados:
+                if a.id == id:
+                    afiliado = a
+                    break
+            if not afiliado:
+                print("Afiliado não encontrado.")
+                return
+
+            print("Digite os novos dados do afiliado:")
+
+            novo_nome = input("Nome: ").strip()
+            if novo_nome:
+                afiliado.nome = novo_nome
+
+            novo_id = input("ID: ").strip()
+            novo_contato = input("Contato: ").strip()
+            if novo_contato:
+                afiliado.contato = novo_contato
+
+            novo_parent_id = input("Parent atual: ").strip()
+
+            if novo_parent_id:
+                parent = None
+                for a in self.__sistema.listaAfiliados:
+                    if a.id == int(novo_parent_id):
+                        parent = a
+                        break
+                if not parent:
+                    print("Afiliado parent não encontrado. Mantendo o atual.")
+                else:
+                    afiliado.parent = parent
+            else:
+                afiliado.parent = None
+            print("Afiliado modificado com sucesso!")
+        except Exception as e:
+            print(f"Erro ao modificar afiliado: {e}")
+
+    def __excluir(self):
+        try:
+            id = int(input("Digite o ID do afiliado que deseja excluir: ").strip())
+            afiliado = None
+
+            for a in self.__sistema.listaAfiliados:
+                if a.id == id:
+                    afiliado = a
+                    break
+
+            if not afiliado:
+                print("Afiliado não encontrado.")
+                return
+
+            for a in self.__sistema.listaAfiliados:
+                if a.parent == afiliado:
+                    print(f"Não é possível excluir o afiliado {afiliado.nome} pois ele é parent de outro afiliado.")
+                    return
+            self.__sistema.listaAfiliados.remove(afiliado)
+            print("Afiliado excluído com sucesso!")
+
+        except Exception as e:
+            print(f"Erro ao excluir afiliado: {e}")
 
 class Produto:
     def __init__(self, codigo, nome, descricao, preco):
