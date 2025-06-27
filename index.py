@@ -420,6 +420,10 @@ class ControllerProduto:
     def __init__(self, tela):
         self.__tela = tela
         self.__produto_DAO = ProdutoDAO()
+        self.__controller_venda = None  # Será injetado posteriormente
+
+    def set_controller_venda(self, controller_venda):
+        self.__controller_venda = controller_venda
 
     @property
     def produto_DAO(self):
@@ -526,14 +530,15 @@ class ControllerProduto:
                 raise Exception("Produto não encontrado!")
 
             tem_venda = False
-            for venda in ControllerVenda.listaVendas: # <-- Problema para excluir produto
-                if venda.produto == produto:
-                    tem_venda = True
-                    break
+            if self.__controller_venda:
+                for venda in self.__controller_venda.listaVendas:
+                    if venda.produto == produto:
+                        tem_venda = True
+                        break
             
             if tem_venda:
                 raise ValueError("Produto está vinculado a vendas!")
-            print(produto)    
+                
             self.__produto_DAO.remove(produto.codigo)
             print("Produto excluído com sucesso!")
             
@@ -675,10 +680,11 @@ class TelaVenda:
         print(f"Id: {info['id']} | Data: {info['data']} | Afiliado: {info['afiliado']} | Produto: {info['produto']} | Quantidade: {info['quantidade']} | Total: R${info['total']} | Status Pagamento: {info.get('pagamento_afiliado', '')}")
 
 class ControllerVenda:
-    def __init__(self, tela):
+    def __init__(self, tela, controller_afiliado, controller_produto):
         self.__tela = tela
+        self.__controller_afiliado = controller_afiliado
+        self.__controller_produto = controller_produto
         self.__listaVendas = []
-        #MESMO PROBLEMAAAAAAAAAAAAAA
 
     @property
     def listaVendas(self):
@@ -693,9 +699,6 @@ class ControllerVenda:
                 raise TypeError("Cada item em listaVendas deve ser do tipo Venda")
         self.__listaVendas = value
 
-    @property
-    def sistema(self):
-        return self.__
     def executar(self):
         while True:
             opc = self.__tela.mostrar_menu()
@@ -722,7 +725,7 @@ class ControllerVenda:
             id, data, afiliado_id, produto_codigo, quantidade = dados
 
             afiliado = None
-            for a in self.__listaAfiliados:
+            for a in self.__controller_afiliado.afiliado_DAO.get_all():
                 if a.id == afiliado_id:
                     afiliado = a
                     break
@@ -730,7 +733,7 @@ class ControllerVenda:
                 raise Exception("Afiliado não encontrado")
 
             produto = None
-            for p in self.__listaProdutos:
+            for p in self.__controller_produto.produto_DAO.get_all():
                 if p.codigo == produto_codigo:
                     produto = p
                     break
@@ -739,6 +742,7 @@ class ControllerVenda:
 
             venda = Venda(id, data, afiliado, produto, quantidade)
             venda.afiliado.vendas.append(venda)
+            self.__listaVendas.append(venda)
             print("Venda registrada com sucesso!")
         except Exception as e:
             print(f"Erro ao cadastrar: {e}")
@@ -786,7 +790,7 @@ class ControllerVenda:
             novo_afiliado_id = input(f"ID Afiliado atual ({venda.afiliado.id}): ").strip()
             if novo_afiliado_id:
                 afiliado = None
-                for a in self.__listaAfiliados:
+                for a in self.__controller_afiliado.afiliado_DAO.get_all():
                     if a.id == int(novo_afiliado_id):
                         afiliado = a
                         break
@@ -797,7 +801,7 @@ class ControllerVenda:
             novo_produto_cod = input(f"Código Produto atual ({venda.produto.codigo}): ").strip()
             if novo_produto_cod:
                 produto = None
-                for p in self.__listaProdutos:
+                for p in self.__controller_produto.produto_DAO.get_all():
                     if p.codigo == novo_produto_cod:
                         produto = p
                         break
@@ -830,13 +834,6 @@ class ControllerVenda:
                 raise Exception("Venda não encontrada!")
 
             venda.afiliado.vendas.remove(venda)
-
-            novas_comissoes = []
-            for c in self.__listaComissoes:
-                if c.venda != venda:
-                    novas_comissoes.append(c)
-            self.__listaComissoes = novas_comissoes
-
             self.__listaVendas.remove(venda)
             print("Venda excluída com sucesso!")
             
@@ -977,8 +974,9 @@ class TelaPagamento:
         print(f"ID Pagamento: {info['id']} | Data: {info['data']} | Afiliado: {info['afiliado']} | Valor Pago: R${info['valorPago']:.2f}")
 
 class ControllerPagamento:
-    def __init__(self, tela):
+    def __init__(self, tela, controller_venda):
         self.__tela = tela
+        self.__controller_venda = controller_venda
         self.__listaPagamentos = []
         self.__listaComissoes = []
 
@@ -1026,7 +1024,7 @@ class ControllerPagamento:
 
     def __gerar_comissoes(self):
         self.__listaComissoes.clear()
-        for venda in self.listaVendas:
+        for venda in self.__controller_venda.listaVendas:
             if venda.pagamento_afiliado == 'realizado':
                 continue
 
@@ -1186,9 +1184,12 @@ class TelaRelatorio:
             print(f"ID: {pagamento.id} | Data: {pagamento.data} | Afiliado: {pagamento.afiliado.nome} | Valor Pago: R${pagamento.valorPago:.2f}")
 
 class ControllerRelatorio:
-    def __init__(self, tela):
+    def __init__(self, tela, controller_venda, controller_pagamento, controller_afiliado):
         self.__tela = tela
-        #AAAAAAAAAAAAAAAAA ADICIONAR LIGAÇÕES ENTRE ELES
+        self.__controller_venda = controller_venda
+        self.__controller_pagamento = controller_pagamento
+        self.__controller_afiliado = controller_afiliado
+
     def executar(self):
         while True:
             opc = self.__tela.mostrar_menu()
@@ -1208,7 +1209,7 @@ class ControllerRelatorio:
 
             afiliado = None
             if afiliado_id is not None:
-                for a in self.__listaAfiliados:
+                for a in self.__controller_afiliado.afiliado_DAO.get_all():
                     if a.id == afiliado_id:
                         afiliado = a
                         break
@@ -1216,7 +1217,7 @@ class ControllerRelatorio:
                     raise Exception("Afiliado não encontrado")
             
             relatorio = Relatorio((data_inicial, data_final), afiliado)
-            vendas_filtradas = relatorio.gerarRelatorioVendas(self.__listaVendas)
+            vendas_filtradas = relatorio.gerarRelatorioVendas(self.__controller_venda.listaVendas)
             self.__tela.mostrar_relatorio_vendas(vendas_filtradas)
         except Exception as e:
             print(f"Erro ao gerar relatório de vendas: {e}")
@@ -1228,7 +1229,7 @@ class ControllerRelatorio:
 
             afiliado = None
             if afiliado_id is not None:
-                for a in self.__listaAfiliados:
+                for a in self.__controller_afiliado.afiliado_DAO.get_all():
                     if a.id == afiliado_id:
                         afiliado = a
                         break
@@ -1236,19 +1237,43 @@ class ControllerRelatorio:
                     raise Exception("Afiliado não encontrado")
             
             relatorio = Relatorio((data_inicial, data_final), afiliado)
-            pagamentos_filtrados = relatorio.gerarRelatorioFinanceiro(self.__listaPagamentos)
+            pagamentos_filtrados = relatorio.gerarRelatorioFinanceiro(self.__controller_pagamento.listaPagamentos)
             self.__tela.mostrar_relatorio_financeiro(pagamentos_filtrados)
         except Exception as e:
             print(f"Erro ao gerar relatório financeiro: {e}")
 
 class ControllerSistema:
     def __init__(self):
-        self.__controller_produto = ControllerProduto(TelaProduto())
-        self.__controller_afiliado = ControllerAfiliado(TelaAfiliado())
-        self.__controller_venda = ControllerVenda(TelaVenda())
-        self.__controller_pagamento = ControllerPagamento(TelaPagamento())
-        self.__controller_relatorio = ControllerRelatorio(TelaRelatorio())
-    
+        tela_produto = TelaProduto()
+        tela_afiliado = TelaAfiliado()
+        tela_venda = TelaVenda()
+        tela_pagamento = TelaPagamento()
+        tela_relatorio = TelaRelatorio()
+        
+        self.__controller_produto = ControllerProduto(tela_produto)
+        self.__controller_afiliado = ControllerAfiliado(tela_afiliado)
+        
+        self.__controller_venda = ControllerVenda(
+            tela_venda, 
+            self.__controller_afiliado,
+            self.__controller_produto
+        )
+        
+        self.__controller_pagamento = ControllerPagamento(
+            tela_pagamento,
+            self.__controller_venda
+        )
+        
+        self.__controller_relatorio = ControllerRelatorio(
+            tela_relatorio,
+            self.__controller_venda,
+            self.__controller_pagamento,
+            self.__controller_afiliado
+        )
+        
+        # Configurar dependência adicional para o ControllerProduto
+        self.__controller_produto.set_controller_venda(self.__controller_venda)
+
     @property
     def controller_produto(self):
         return self.__controller_produto
