@@ -7,7 +7,7 @@ class DAO(ABC):
     @abstractmethod
     def __init__(self, datasource=''):
         self.__datasource = datasource
-        self.__cache = {} #é aqui que vai ficar a lista que estava no controlador. Nesse exemplo estamos usando um dicionario
+        self.__cache = {}
         try:
             self.__load()
         except FileNotFoundError:
@@ -19,33 +19,30 @@ class DAO(ABC):
     def __load(self):
         self.__cache = pickle.load(open(self.__datasource,'rb'))
 
-    #esse método precisa chamar o self.__dump()
     def add(self, key, obj):
         self.__cache[key] = obj
-        self.__dump()  #atualiza o arquivo depois de add novo amigo
+        self.__dump()
 
-    #cuidado: esse update só funciona se o objeto com essa chave já existe
     def update(self, key, obj):
         try:
             if(self.__cache[key] != None):
-                self.__cache[key] = obj #atualiza a entrada
-                self.__dump()  #atualiza o arquivo
+                self.__cache[key] = obj
+                self.__dump()
         except KeyError:
-            pass  # implementar aqui o tratamento da exceção
+            pass
 
     def get(self, key):
         try:
             return self.__cache[key]
         except KeyError:
-            pass #implementar aqui o tratamento da exceção
+            pass
 
-    # esse método precisa chamar o self.__dump()
     def remove(self, key):
         try:
             self.__cache.pop(key)
-            self.__dump() #atualiza o arquivo depois de remover um objeto
+            self.__dump()
         except KeyError:
-            pass #implementar aqui o tratamento da exceção
+            pass
 
     def get_all(self):
         return self.__cache.values()
@@ -640,6 +637,26 @@ class Venda:
     def calcularTotal(self):
         self.__total = self.quantidade * self.produto.preco
         return self.__total
+    
+class VendaDAO(DAO):
+    def __init__(self):
+        super().__init__('venda.pkl')
+    
+    def add(self, venda: Venda):
+        if((venda is not None) and isinstance(venda, Venda) and isinstance(venda.id, int)):
+            super().add(venda.id, venda)
+    
+    def update(self, venda: Venda):
+        if((venda is not None) and isinstance(venda, Venda) and isinstance(venda.id, int)):
+            super().update(venda.id, venda)
+
+    def get(self, key:int):
+        if isinstance(key, int):
+            return super().get(key)
+
+    def remove(self, key:int):
+        if(isinstance(key, int)):
+            return super().remove(key)
 
 class TelaVenda:
     def mostrar_menu(self):
@@ -684,20 +701,20 @@ class ControllerVenda:
         self.__tela = tela
         self.__controller_afiliado = controller_afiliado
         self.__controller_produto = controller_produto
-        self.__listaVendas = []
+        self.__venda_DAO = VendaDAO()
 
     @property
-    def listaVendas(self):
-        return self.__listaVendas
+    def venda_DAO(self):
+        return self.__venda_DAO
 
-    @listaVendas.setter
-    def listaVendas(self, value):
-        if not isinstance(value, list):
-            raise TypeError("listaVendas deve ser uma lista de Venda")
-        for item in value:
+    @venda_DAO.setter
+    def venda_DAO(self, venda_DAO):
+        if not isinstance(venda_DAO, VendaDAO):
+            raise TypeError("lista Vendas deve ser uma lista de Venda")
+        for item in venda_DAO:
             if not isinstance(item, Venda):
-                raise TypeError("Cada item em listaVendas deve ser do tipo Venda")
-        self.__listaVendas = value
+                raise TypeError("Cada item em lista Vendas deve ser do tipo Venda")
+        self.__venda_DAO = venda_DAO
 
     def executar(self):
         while True:
@@ -719,7 +736,7 @@ class ControllerVenda:
         try:
             dados = self.__tela.ler_dados()
 
-            for item in self.__listaVendas:
+            for item in self.__venda_DAO.get_all():
                 if item.id == dados[0]:
                     raise Exception("Id repetido")
             id, data, afiliado_id, produto_codigo, quantidade = dados
@@ -742,13 +759,13 @@ class ControllerVenda:
 
             venda = Venda(id, data, afiliado, produto, quantidade)
             venda.afiliado.vendas.append(venda)
-            self.__listaVendas.append(venda)
+            self.__venda_DAO.add(venda)
             print("Venda registrada com sucesso!")
         except Exception as e:
             print(f"Erro ao cadastrar: {e}")
 
     def __listar(self):
-        vendas = self.__listaVendas
+        vendas = self.__venda_DAO.get_all()
         print("\n=== Lista de Vendas ===")
         if not vendas:
             print("Nenhuma venda registrada.")
@@ -770,7 +787,7 @@ class ControllerVenda:
             venda_id = int(input("ID da venda: "))
             venda = None
 
-            for v in self.__listaVendas:
+            for v in self.__venda_DAO.get_all():
                 if v.id == venda_id:
                     venda = v
                     break
@@ -824,19 +841,15 @@ class ControllerVenda:
         try:
             venda_id = int(input("ID da venda: "))
             venda = None
-
-            for v in self.__listaVendas:
-                if v.id == venda_id:
-                    venda = v
-                    break
-            
-            if not venda:
+            # exclui pela key
+            v = self.__venda_DAO.get(venda_id)
+            if not v:
                 raise Exception("Venda não encontrada!")
-
+            venda = v
             venda.afiliado.vendas.remove(venda)
-            self.__listaVendas.remove(venda)
+            self.__venda_DAO.remove(venda_id)
             print("Venda excluída com sucesso!")
-            
+
         except Exception as e:
             print(f"Erro: {e}")
 
