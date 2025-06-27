@@ -1057,7 +1057,9 @@ class ControllerPagamento:
 
     def __gerar_comissoes(self):
         self.__listaComissoes.clear()
-        for venda in self.__controller_venda.venda_DAO.get_all():
+        venda_dao = self.__controller_venda.venda_DAO
+        
+        for venda in venda_dao.get_all():
             if venda.pagamento_afiliado == 'realizado':
                 continue
 
@@ -1078,6 +1080,7 @@ class ControllerPagamento:
 
         for c in self.__listaComissoes:
             c.venda.pagamento_afiliado = 'aguardando confirmação'
+            venda_dao.update(c.venda)
         print("Comissões geradas com sucesso!")
 
     def __listar_comissoes(self):
@@ -1095,7 +1098,9 @@ class ControllerPagamento:
             self.__tela.mostrar_comissao(info)
 
     def __processar_pagamentos(self):
+        venda_dao = self.__controller_venda.venda_DAO
         next_id = max((p.id for p in self.__pagamento_DAO.get_all()), default=0) + 1
+        
         for com in list(self.__listaComissoes):
             pag = Pagamento(
                 next_id,
@@ -1105,6 +1110,7 @@ class ControllerPagamento:
             )
             self.__pagamento_DAO.add(pag)
             com.venda.pagamento_afiliado = 'realizado'
+            venda_dao.update(com.venda)
             next_id += 1
 
         self.__listaComissoes.clear()
