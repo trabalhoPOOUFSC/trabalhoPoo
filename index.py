@@ -949,6 +949,26 @@ class Pagamento:
             raise TypeError("valorPago deve ser numérico")
         self.__valorPago = float(value)
 
+class PagamentoDAO(DAO):
+    def __init__(self):
+        super().__init__('pagamento.pkl')
+    
+    def add(self, pagamento: Pagamento):
+        if((pagamento is not None) and isinstance(pagamento, Pagamento) and isinstance(pagamento.id, int)):
+            super().add(pagamento.id, pagamento)
+    
+    def update(self, pagamento: Pagamento):
+        if((pagamento is not None) and isinstance(pagamento, Pagamento) and isinstance(pagamento.id, int)):
+            super().update(pagamento.id, pagamento)
+
+    def get(self, key:int):
+        if isinstance(key, int):
+            return super().get(key)
+
+    def remove(self, key:int):
+        if(isinstance(key, int)):
+            return super().remove(key)
+
 class TelaPagamento:
     def mostrar_menu(self):
         print("\n=== Menu Pagamento ===")
@@ -990,7 +1010,7 @@ class ControllerPagamento:
     def __init__(self, tela, controller_venda):
         self.__tela = tela
         self.__controller_venda = controller_venda
-        self.__listaPagamentos = []
+        self.__pagamento_DAO = PagamentoDAO()
         self.__listaComissoes = []
 
     @property
@@ -1007,17 +1027,17 @@ class ControllerPagamento:
         self.__listaComissoes = value
 
     @property
-    def listaPagamentos(self):
-        return self.__listaPagamentos
+    def pagamento_DAO(self):
+        return self.__pagamento_DAO
 
-    @listaPagamentos.setter
-    def listaPagamentos(self, value):
-        if not isinstance(value, list):
+    @pagamento_DAO.setter
+    def pagamento_DAO(self, pagamento_DAO):
+        if not isinstance(pagamento_DAO, PagamentoDAO):
             raise TypeError("listaPagamentos deve ser uma lista de Pagamento")
-        for item in value:
+        for item in pagamento_DAO:
             if not isinstance(item, Pagamento):
                 raise TypeError("Cada item em listaPagamentos deve ser do tipo Pagamento")
-        self.__listaPagamentos = value
+        self.__pagamento_DAO = pagamento_DAO
 
     def executar(self):
         while True:
@@ -1037,7 +1057,7 @@ class ControllerPagamento:
 
     def __gerar_comissoes(self):
         self.__listaComissoes.clear()
-        for venda in self.__controller_venda.listaVendas:
+        for venda in self.__controller_venda.venda_DAO.get_all():
             if venda.pagamento_afiliado == 'realizado':
                 continue
 
@@ -1075,7 +1095,7 @@ class ControllerPagamento:
             self.__tela.mostrar_comissao(info)
 
     def __processar_pagamentos(self):
-        next_id = max((p.id for p in self.__listaPagamentos), default=0) + 1
+        next_id = max((p.id for p in self.__pagamento_DAO.get_all()), default=0) + 1
         for com in list(self.__listaComissoes):
             pag = Pagamento(
                 next_id,
@@ -1083,7 +1103,7 @@ class ControllerPagamento:
                 com.recebedor,
                 com.valor
             )
-            self.__listaPagamentos.append(pag)
+            self.__pagamento_DAO.add(pag)
             com.venda.pagamento_afiliado = 'realizado'
             next_id += 1
 
@@ -1091,7 +1111,7 @@ class ControllerPagamento:
         print("Pagamentos processados com sucesso!")
 
     def __listar_pagamentos(self):
-        pagamentos = self.__listaPagamentos
+        pagamentos = self.__pagamento_DAO.get_all()
         if not pagamentos:
             print("Nenhum pagamento efetuado.")
             return
@@ -1230,7 +1250,7 @@ class ControllerRelatorio:
                     raise Exception("Afiliado não encontrado")
             
             relatorio = Relatorio((data_inicial, data_final), afiliado)
-            vendas_filtradas = relatorio.gerarRelatorioVendas(self.__controller_venda.listaVendas)
+            vendas_filtradas = relatorio.gerarRelatorioVendas(self.__controller_venda.venda_DAO.get_all())
             self.__tela.mostrar_relatorio_vendas(vendas_filtradas)
         except Exception as e:
             print(f"Erro ao gerar relatório de vendas: {e}")
@@ -1250,35 +1270,35 @@ class ControllerRelatorio:
                     raise Exception("Afiliado não encontrado")
             
             relatorio = Relatorio((data_inicial, data_final), afiliado)
-            pagamentos_filtrados = relatorio.gerarRelatorioFinanceiro(self.__controller_pagamento.listaPagamentos)
+            pagamentos_filtrados = relatorio.gerarRelatorioFinanceiro(self.__controller_pagamento.pagamento_DAO.get_all())
             self.__tela.mostrar_relatorio_financeiro(pagamentos_filtrados)
         except Exception as e:
             print(f"Erro ao gerar relatório financeiro: {e}")
 
 class ControllerSistema:
     def __init__(self):
-        tela_produto = TelaProduto()
-        tela_afiliado = TelaAfiliado()
-        tela_venda = TelaVenda()
-        tela_pagamento = TelaPagamento()
-        tela_relatorio = TelaRelatorio()
+        tela__produto = TelaProduto()
+        tela__afiliado = TelaAfiliado()
+        tela__venda = TelaVenda()
+        tela__pagamento = TelaPagamento()
+        tela__relatorio = TelaRelatorio()
         
-        self.__controller_produto = ControllerProduto(tela_produto)
-        self.__controller_afiliado = ControllerAfiliado(tela_afiliado)
+        self.__controller_produto = ControllerProduto(tela__produto)
+        self.__controller_afiliado = ControllerAfiliado(tela__afiliado)
         
         self.__controller_venda = ControllerVenda(
-            tela_venda, 
+            tela__venda, 
             self.__controller_afiliado,
             self.__controller_produto
         )
         
         self.__controller_pagamento = ControllerPagamento(
-            tela_pagamento,
+            tela__pagamento,
             self.__controller_venda
         )
         
         self.__controller_relatorio = ControllerRelatorio(
-            tela_relatorio,
+            tela__relatorio,
             self.__controller_venda,
             self.__controller_pagamento,
             self.__controller_afiliado
