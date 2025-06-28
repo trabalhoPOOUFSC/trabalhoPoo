@@ -2,6 +2,41 @@ from datetime import date
 import pickle
 from abc import ABC, abstractmethod
 
+class EntidadeNaoEncontradaException(Exception):
+    def __init__(self, entidade: str = "", id_entidade=None, mensagem: str = ""):
+        self.entidade = entidade
+        self.id_entidade = id_entidade
+        
+        if not mensagem:
+            if id_entidade is not None:
+                mensagem = f"{entidade} com ID {id_entidade} não encontrada"
+            else:
+                mensagem = f"{entidade} não encontrada" if entidade else "Entidade não encontrada"
+                
+        super().__init__(mensagem)
+
+class DadoInvalidoException(Exception):
+    def __init__(self, campo: str = "", valor=None, mensagem: str = ""):
+        self.campo = campo
+        self.valor = valor
+
+        if valor and campo:
+            mensagem = f"Valor inválido para {campo}: {valor}. {mensagem}"
+        elif campo:
+            mensagem = f"Dado inválido: {campo}. {mensagem}"
+        else:
+            mensagem = mensagem if mensagem else "Dado inválido"
+                
+        super().__init__(mensagem)
+
+class CampoObrigatorioException(Exception):
+    def __init__(self, campo: str):
+        mensagem = f"{campo} é obrigatório e não pode ser vazio"
+        super().__init__(mensagem)
+
+class ViolacaoRegraNegocioException(Exception):
+    def __init__(self, mensagem: str = "Violação de regra de negócio!"):
+        super().__init__(mensagem)
 
 class DAO(ABC):
     @abstractmethod
@@ -152,15 +187,19 @@ class TelaAfiliado:
         return input("Escolha uma opção: ")
     
     def ler_dados(self):
-        id = int(input("Id: ").strip())
-        if not id:
-            raise ValueError("Id é obrigatório e não pode ser vazio")
+        try:
+            id = int(input("Id: ").strip())
+        except ValueError:
+            raise DadoInvalidoException("Id", "não numérico", "Id deve ser um número inteiro")
+            
         nome = input("Nome: ").strip()
         if not nome:
-            raise ValueError("Nome é obrigatório e nao pode ser vazio")
+            raise CampoObrigatorioException("Nome")
+            
         contato = input("Contato: ").strip()
         if not contato:
-            raise ValueError("Contato é obrigatório e não pode ser vazio")
+            raise CampoObrigatorioException("Contato")
+            
         parent_id = input("Parent Id: ").strip()
         if not parent_id:
             parent_id = None
@@ -213,12 +252,12 @@ class ControllerAfiliado:
 
             for a in self.__afiliado_DAO.get_all():
                 if a.id == id:
-                    raise Exception("ID repetido")
+                    raise DadoInvalidoException("Id", id, "ID já existe")
                 if parent_id and a.id == int(parent_id):
                     parent = a
 
             if parent_id and not parent:
-                raise Exception("Afiliado não encontrado")
+                raise EntidadeNaoEncontradaException("Afiliado", parent_id)
 
             afiliado = Afiliado(id, nome, contato, parent)
 
@@ -231,7 +270,7 @@ class ControllerAfiliado:
         afiliados = self.__afiliado_DAO.get_all()
         print("\n=== Lista de afiliado ===")
         if not afiliados:
-            raise Exception("Afiliado não encontrado")
+            raise EntidadeNaoEncontradaException("Afiliado")
         else:
             for a in afiliados:
                 if a.parent is None:
@@ -250,8 +289,7 @@ class ControllerAfiliado:
                     afiliado = a
                     break
             if not afiliado:
-                print("Afiliado não encontrado.")
-                return
+                raise EntidadeNaoEncontradaException("Afiliado", id)
 
             print("Digite os novos dados do afiliado:")
 
@@ -259,9 +297,13 @@ class ControllerAfiliado:
             if novo_nome:
                 afiliado.nome = novo_nome
 
-            novo_id = int(input("ID: ").strip())
-            if novo_id:
-                afiliado.id = novo_id
+            try:
+                novo_id = int(input("ID: ").strip())
+                if novo_id:
+                    afiliado.id = novo_id
+            except ValueError:
+                raise DadoInvalidoException("ID", "não numérico", "ID deve ser um número inteiro")
+                
             novo_contato = input("Contato: ").strip()
             if novo_contato:
                 afiliado.contato = novo_contato
@@ -295,13 +337,14 @@ class ControllerAfiliado:
                     break
 
             if not afiliado:
-                print("Afiliado não encontrado.")
-                return
+                raise EntidadeNaoEncontradaException("Afiliado", id)
 
             for a in self.__afiliado_DAO.get_all():
                 if a.parent == afiliado:
-                    print(f"Não é possível excluir o afiliado {afiliado.nome} pois ele é parent de outro afiliado.")
-                    return
+                    raise ViolacaoRegraNegocioException(
+                        f"Não é possível excluir {afiliado.nome} pois é parente de outros afiliados"
+                    )
+                    
             self.__afiliado_DAO.remove(afiliado.id)
             print("Afiliado excluído com sucesso!")
 
@@ -396,18 +439,22 @@ class TelaProduto:
     def ler_dados(self):
         codigo = input("Código: ").strip()
         if not codigo:
-            raise ValueError("Código é obrigatório e não pode ser vazio")
+            raise CampoObrigatorioException("Código")
+            
         nome = input("Nome: ").strip()
         if not nome:
-            raise ValueError("Nome é obrigatório e não pode ser vazio")
+            raise CampoObrigatorioException("Nome")
+            
         descricao = input("Descrição: ").strip()
         if not descricao:
-            raise ValueError("Descrição é obrigatória e não pode ser vazia")
+            raise CampoObrigatorioException("Descrição")
+            
         preco_str = input("Preço: ")
         try:
             preco = float(preco_str)
         except ValueError:
-            raise ValueError("Preço deve ser numérico")
+            raise DadoInvalidoException("Preço", preco_str, "Preço deve ser um valor numérico")
+            
         return codigo, nome, descricao, preco
 
     def mostrar_produto(self, info):
@@ -457,7 +504,7 @@ class ControllerProduto:
             
             for item in self.__produto_DAO.get_all():
                 if item.codigo == dados[0]:
-                    raise Exception("Código repetido")
+                    raise DadoInvalidoException("Código", dados[0], "Código já existe")
 
             produto = Produto(*dados)
             self.__produto_DAO.add(produto)
@@ -486,7 +533,7 @@ class ControllerProduto:
                     break
             
             if not produto:
-                raise Exception("Produto não encontrado!")
+                raise EntidadeNaoEncontradaException("Produto", codigo)
 
             print("\nDeixe em branco para manter o valor atual")
 
@@ -494,7 +541,7 @@ class ControllerProduto:
             if novo_codigo:
                 for p in self.__produto_DAO.get_all():
                     if p != produto and p.codigo == novo_codigo:
-                        raise ValueError("Código já está em uso!")
+                        raise DadoInvalidoException("Código", novo_codigo, "Código já está em uso")
                 produto.codigo = novo_codigo
 
             novo_nome = input(f"Nome atual ({produto.nome}): ").strip()
@@ -507,7 +554,10 @@ class ControllerProduto:
                 
             novo_preco = input(f"Preço atual ({produto.preco}): ").strip()
             if novo_preco:
-                produto.preco = float(novo_preco)
+                try:
+                    produto.preco = float(novo_preco)
+                except ValueError:
+                    raise DadoInvalidoException("Preço", novo_preco, "Preço deve ser numérico")
             
             print("Produto atualizado com sucesso!")
             
@@ -524,17 +574,19 @@ class ControllerProduto:
                     produto = p
                     break
             if not produto:
-                raise Exception("Produto não encontrado!")
+                raise EntidadeNaoEncontradaException("Produto", codigo)
 
             tem_venda = False
             if self.__controller_venda:
-                for venda in self.__controller_venda.listaVendas:
+                for venda in self.__controller_venda.venda_DAO.get_all():
                     if venda.produto == produto:
                         tem_venda = True
                         break
             
             if tem_venda:
-                raise ValueError("Produto está vinculado a vendas!")
+                raise ViolacaoRegraNegocioException(
+                    "Produto está vinculado a vendas e não pode ser excluído"
+                )
                 
             self.__produto_DAO.remove(produto.codigo)
             print("Produto excluído com sucesso!")
@@ -669,27 +721,31 @@ class TelaVenda:
         return input("Escolha uma opção: ")
 
     def ler_dados(self):
-        id = int(input("Id: ").strip())
-        if not id:
-            raise ValueError("Id é obrigatório e não pode ser vazio")
+        try:
+            id = int(input("Id: ").strip())
+        except ValueError:
+            raise DadoInvalidoException("Id", "não numérico", "Id deve ser um número inteiro")
 
         data_str = input("Data no formato AAAA-MM-DD: ").strip()
-        data = date.fromisoformat(data_str)
-        if not data:
-            raise ValueError("Data é obrigatória e não pode ser vazia")
+        try:
+            data = date.fromisoformat(data_str)
+        except ValueError:
+            raise DadoInvalidoException("Data", data_str, "Formato de data inválido. Use AAAA-MM-DD")
 
-        afiliado_id = int(input("Id do Afiliado: ").strip())
-        if not afiliado_id:
-            raise ValueError("Afiliado é obrigatório e não pode ser vazio")
+        try:
+            afiliado_id = int(input("Id do Afiliado: ").strip())
+        except ValueError:
+            raise DadoInvalidoException("Afiliado", "não numérico", "ID do Afiliado deve ser um número inteiro")
 
         produto_codigo = input("Código do Produto: ").strip()
         if not produto_codigo:
-            raise ValueError("Produto é obrigatório e não pode ser vazio")
+            raise CampoObrigatorioException("Código do Produto")
 
         quantidade_str = input("Quantidade: ").strip()
-        if not quantidade_str:
-            raise ValueError("Quantidade é obrigatória e não pode ser vazia")
-        quantidade = int(quantidade_str)
+        try:
+            quantidade = int(quantidade_str)
+        except ValueError:
+            raise DadoInvalidoException("Quantidade", quantidade_str, "Quantidade deve ser um número inteiro")
 
         return id, data, afiliado_id, produto_codigo, quantidade
 
@@ -738,7 +794,8 @@ class ControllerVenda:
 
             for item in self.__venda_DAO.get_all():
                 if item.id == dados[0]:
-                    raise Exception("Id repetido")
+                    raise DadoInvalidoException("Id", dados[0], "ID já existe")
+                    
             id, data, afiliado_id, produto_codigo, quantidade = dados
 
             afiliado = None
@@ -747,7 +804,7 @@ class ControllerVenda:
                     afiliado = a
                     break
             if afiliado is None:
-                raise Exception("Afiliado não encontrado")
+                raise EntidadeNaoEncontradaException("Afiliado", afiliado_id)
 
             produto = None
             for p in self.__controller_produto.produto_DAO.get_all():
@@ -755,7 +812,7 @@ class ControllerVenda:
                     produto = p
                     break
             if produto is None:
-                raise Exception("Produto não encontrado")
+                raise EntidadeNaoEncontradaException("Produto", produto_codigo)
 
             venda = Venda(id, data, afiliado, produto, quantidade)
             venda.afiliado.vendas.append(venda)
@@ -793,26 +850,36 @@ class ControllerVenda:
                     break
             
             if not venda:
-                raise Exception("Venda não encontrada!")
+                raise EntidadeNaoEncontradaException("Venda", venda_id)
 
             if venda.pagamento_afiliado == 'realizado':
-                raise Exception('Não é permitido modificar venda com status pagamento realizado!')
+                raise ViolacaoRegraNegocioException(
+                    "Não é permitido modificar venda com status pagamento realizado"
+                )
                 
             print("\nDeixe em branco para manter o valor atual")
 
             nova_data = input(f"Data atual ({venda.data}): ").strip()
             if nova_data:
-                venda.data = date.fromisoformat(nova_data)
+                try:
+                    venda.data = date.fromisoformat(nova_data)
+                except ValueError:
+                    raise DadoInvalidoException("Data", nova_data, "Formato de data inválido. Use AAAA-MM-DD")
 
             novo_afiliado_id = input(f"ID Afiliado atual ({venda.afiliado.id}): ").strip()
             if novo_afiliado_id:
+                try:
+                    novo_afiliado_id = int(novo_afiliado_id)
+                except ValueError:
+                    raise DadoInvalidoException("Afiliado", novo_afiliado_id, "ID do Afiliado deve ser numérico")
+                    
                 afiliado = None
                 for a in self.__controller_afiliado.afiliado_DAO.get_all():
-                    if a.id == int(novo_afiliado_id):
+                    if a.id == novo_afiliado_id:
                         afiliado = a
                         break
                 if not afiliado:
-                    raise ValueError("Afiliado não encontrado!")
+                    raise EntidadeNaoEncontradaException("Afiliado", novo_afiliado_id)
                 venda.afiliado = afiliado
 
             novo_produto_cod = input(f"Código Produto atual ({venda.produto.codigo}): ").strip()
@@ -823,12 +890,15 @@ class ControllerVenda:
                         produto = p
                         break
                 if not produto:
-                    raise ValueError("Produto não encontrado!")
+                    raise EntidadeNaoEncontradaException("Produto", novo_produto_cod)
                 venda.produto = produto
 
             nova_qtde = input(f"Quantidade atual ({venda.quantidade}): ").strip()
             if nova_qtde:
-                venda.quantidade = int(nova_qtde)
+                try:
+                    venda.quantidade = int(nova_qtde)
+                except ValueError:
+                    raise DadoInvalidoException("Quantidade", nova_qtde, "Quantidade deve ser um número inteiro")
 
             venda.calcularTotal()
             venda.pagamento_afiliado = 'não realizado'
@@ -844,7 +914,8 @@ class ControllerVenda:
             # exclui pela key
             v = self.__venda_DAO.get(venda_id)
             if not v:
-                raise Exception("Venda não encontrada!")
+                raise EntidadeNaoEncontradaException("Venda", venda_id)
+                
             venda = v
             venda.afiliado.vendas.remove(venda)
             self.__venda_DAO.remove(venda_id)
@@ -980,22 +1051,27 @@ class TelaPagamento:
         return input("Escolha uma opção: ")
 
     def ler_dados(self):
-        id = int(input("Id: ").strip())
-        if not id:
-            raise ValueError("Id é obrigatório e não pode ser vazio")
+        try:
+            id = int(input("Id: ").strip())
+        except ValueError:
+            raise DadoInvalidoException("Id", "não numérico", "Id deve ser um número inteiro")
         
         data_str = input("Data no formato AAAA-MM-DD: ").strip()
-        data = date.fromisoformat(data_str)
-        if not data:
-            raise ValueError("Data é obrigatória e não pode ser vazia")
+        try:
+            data = date.fromisoformat(data_str)
+        except ValueError:
+            raise DadoInvalidoException("Data", data_str, "Formato de data inválido. Use AAAA-MM-DD")
 
-        afiliado_id = int(input("Id do Afiliado: ").strip())
-        if not afiliado_id:
-            raise ValueError("Afiliado é obrigatório e não pode ser vazio")
+        try:
+            afiliado_id = int(input("Id do Afiliado: ").strip())
+        except ValueError:
+            raise DadoInvalidoException("Afiliado", "não numérico", "ID do Afiliado deve ser um número inteiro")
         
-        valorPago = float(input("Valor Pago: ").strip())
-        if not valorPago:
-            raise ValueError("Valor pago é obrigatório e não pode ser vazio")
+        valorPago_str = input("Valor Pago: ").strip()
+        try:
+            valorPago = float(valorPago_str)
+        except ValueError:
+            raise DadoInvalidoException("Valor Pago", valorPago_str, "Valor pago deve ser numérico")
         
         return id, data, afiliado_id, valorPago
 
@@ -1188,13 +1264,19 @@ class TelaRelatorio:
     def ler_dados(self):
         data_inicial_str = input("Data inicial (YYYY-MM-DD): ").strip()
         if not data_inicial_str:
-            raise ValueError("Data inicial é obrigatória e não pode ser vazia")
-        data_inicial = date.fromisoformat(data_inicial_str)
+            raise CampoObrigatorioException("Data inicial")
+        try:
+            data_inicial = date.fromisoformat(data_inicial_str)
+        except ValueError:
+            raise DadoInvalidoException("Data inicial", data_inicial_str, "Formato de data inválido. Use AAAA-MM-DD")
 
         data_final_str = input("Data final (YYYY-MM-DD): ").strip()
         if not data_final_str:
-            raise ValueError("Data final é obrigatória e não pode ser vazia")
-        data_final = date.fromisoformat(data_final_str)
+            raise CampoObrigatorioException("Data final")
+        try:
+            data_final = date.fromisoformat(data_final_str)
+        except ValueError:
+            raise DadoInvalidoException("Data final", data_final_str, "Formato de data inválido. Use AAAA-MM-DD")
 
         afiliado_id_str = input("Id do Afiliado (opcional, deixe em branco para todos): ").strip()
         afiliado_id = None
@@ -1202,7 +1284,7 @@ class TelaRelatorio:
             try:
                 afiliado_id = int(afiliado_id_str)
             except ValueError:
-                raise ValueError("Id do Afiliado deve ser um número inteiro")
+                raise DadoInvalidoException("Id do Afiliado", afiliado_id_str, "Id do Afiliado deve ser um número inteiro")
 
         return data_inicial, data_final, afiliado_id
 
@@ -1253,7 +1335,7 @@ class ControllerRelatorio:
                         afiliado = a
                         break
                 if afiliado is None and afiliado_id is not None:
-                    raise Exception("Afiliado não encontrado")
+                    raise EntidadeNaoEncontradaException("Afiliado", afiliado_id)
             
             relatorio = Relatorio((data_inicial, data_final), afiliado)
             vendas_filtradas = relatorio.gerarRelatorioVendas(self.__controller_venda.venda_DAO.get_all())
@@ -1273,7 +1355,7 @@ class ControllerRelatorio:
                         afiliado = a
                         break
                 if afiliado is None and afiliado_id is not None:
-                    raise Exception("Afiliado não encontrado")
+                    raise EntidadeNaoEncontradaException("Afiliado", afiliado_id)
             
             relatorio = Relatorio((data_inicial, data_final), afiliado)
             pagamentos_filtrados = relatorio.gerarRelatorioFinanceiro(self.__controller_pagamento.pagamento_DAO.get_all())
