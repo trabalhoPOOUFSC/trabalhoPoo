@@ -222,30 +222,35 @@ class TelaAfiliado:
                 return None
             if botao == 'Confirmar':
                 return values
-        ''' id = int(input("Id: ").strip())
-        except ValueError:
-            raise DadoInvalidoException("Id", "não numérico", "Id deve ser um número inteiro")
-            
-        nome = input("Nome: ").strip()
-        if not nome:
-            raise CampoObrigatorioException("Nome")
-            
-        contato = input("Contato: ").strip()
-        if not contato:
-            raise CampoObrigatorioException("Contato")
-            
-        parent_id = input("Parent Id: ").strip()
-        if not parent_id:
-            parent_id = None
 
-        return id, nome, contato, parent_id '''
+    def mostrar_afiliado(self, lista_afiliados):
+        if not lista_afiliados:
+            sg.popup("Nenhum afiliado cadastrado.")
+            return
 
-    def mostrar_afiliado(self, info):
-        print(f"Id: {info['id']} | Nome: {info['nome']} | contato: {info['contato']} | Parent Id: {info['parent']}")
+        texto = "=== Lista de Afiliados ===\n\n"
+        for info in lista_afiliados:
+            parent_id = info['parent']
+            if parent_id is None:
+                parent_id = 'Nenhum'
+            texto += f"ID: {info['id']} | Nome: {info['nome']} | Contato: {info['contato']} | Parent ID: {parent_id}\n"
 
-    def opcao_invalida(self):
-        sg.popup("opção invalida!")
-        return
+        layout = [
+            [sg.Multiline(texto, size=(60, len(lista_afiliados) + 6), disabled=True)],
+            [sg.Button("Fechar")]
+        ]
+
+        window = sg.Window("Afiliados Cadastrados", layout)
+        while True:
+            event, _ = window.read()
+            if event in (sg.WINDOW_CLOSED, "Fechar"):
+                break
+        window.close()
+
+        def opcao_invalida(self):
+            sg.popup("opção invalida!")
+            return
+
 class ControllerAfiliado:
     def __init__(self, tela):
         self.__tela = tela
@@ -319,16 +324,17 @@ class ControllerAfiliado:
 
     def __listar(self):
         afiliados = self.__afiliado_DAO.get_all()
-        print("\n=== Lista de afiliado ===")
         if not afiliados:
             raise EntidadeNaoEncontradaException("Afiliado")
         else:
+            lista_afiliados = []
             for a in afiliados:
                 if a.parent is None:
                     info = {'id': a.id, 'nome': a.nome, 'contato': a.contato, 'parent': None}
                 else:
                     info = {'id': a.id, 'nome': a.nome, 'contato': a.contato, 'parent': a.parent.id}
-                self.__tela.mostrar_afiliado(info)
+                lista_afiliados.append(info)
+            self.__tela.mostrar_afiliado(lista_afiliados)
 
     def __modificar(self):
         try:
