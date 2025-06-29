@@ -286,15 +286,6 @@ class ControllerAfiliado:
     def afiliado_DAO (self):
         return self.__afiliado_DAO
 
-    @afiliado_DAO.setter
-    def afiliado_DAO (self, value):
-        if not isinstance(value, list):
-            raise TypeError("listaAfiliados deve ser uma lista de Afiliado")
-        for item in value:
-            if not isinstance(item, Afiliado):
-                raise TypeError("Cada item em listaAfiliados deve ser do tipo Afiliado")
-        self.__afiliado_DAO = value
-
     def executar(self):
         self.__tela.init_components()
         while True:
@@ -990,6 +981,10 @@ class ControllerVenda:
         self.__controller_produto = controller_produto
         self.__venda_DAO = VendaDAO()
 
+    @property
+    def venda_DAO(self):
+        return self.__venda_DAO
+
     def executar(self):
         self.__tela.init_components()
         while True:
@@ -1505,55 +1500,83 @@ class Relatorio:
         return pagamentos_filtrados
 
 class TelaRelatorio:
+    def __init__(self):
+        self.__window = None
+
+    def init_components(self):
+        sg.ChangeLookAndFeel('Reddit')
+        layout = [
+            [sg.Text('Escolha uma opção')],
+            [sg.Radio('Gerar Relatório de Vendas', "RD1", default=False, key='1')],
+            [sg.Radio('Gerar Relatório de Pagamentos', "RD1", default=False, key='2')],
+            [sg.Submit('Confirmar'), sg.Cancel('Voltar')]
+        ]
+        self.__window = sg.Window('Menu de Relatórios').Layout(layout)
+
+    def close(self):
+        if self.__window:
+            self.__window.Close()
+        self.__window = None
+
     def mostrar_menu(self):
-        print("\n=== Menu Relatórios ===")
-        print("1. Gerar Relatório de Vendas")
-        print("2. Gerar Relatório de Pagamentos")
-        print("0. Voltar")
-        return input("Escolha uma opção: ")
+        botao, opc = self.__window.Read()
+        return botao, opc
 
     def ler_dados(self):
-        data_inicial_str = input("Data inicial (YYYY-MM-DD): ").strip()
-        if not data_inicial_str:
-            raise CampoObrigatorioException("Data inicial")
-        try:
-            data_inicial = date.fromisoformat(data_inicial_str)
-        except ValueError:
-            raise DadoInvalidoException("Data inicial", data_inicial_str, "Formato de data inválido. Use AAAA-MM-DD")
+        layout = [
+            [sg.Text('Gerar Relatório')],
+            [sg.Text('Data Inicial (AAAA-MM-DD)', size=(20, 1)), sg.InputText(key='data_inicial')],
+            [sg.Text('Data Final (AAAA-MM-DD)', size=(20, 1)), sg.InputText(key='data_final')],
+            [sg.Text('ID do Afiliado (opcional)', size=(20, 1)), sg.InputText(key='afiliado_id')],
+            [sg.Submit('Confirmar'), sg.Cancel('Cancelar')]
+        ]
 
-        data_final_str = input("Data final (YYYY-MM-DD): ").strip()
-        if not data_final_str:
-            raise CampoObrigatorioException("Data final")
-        try:
-            data_final = date.fromisoformat(data_final_str)
-        except ValueError:
-            raise DadoInvalidoException("Data final", data_final_str, "Formato de data inválido. Use AAAA-MM-DD")
-
-        afiliado_id_str = input("Id do Afiliado (opcional, deixe em branco para todos): ").strip()
-        afiliado_id = None
-        if afiliado_id_str:
-            try:
-                afiliado_id = int(afiliado_id_str)
-            except ValueError:
-                raise DadoInvalidoException("Id do Afiliado", afiliado_id_str, "Id do Afiliado deve ser um número inteiro")
-
-        return data_inicial, data_final, afiliado_id
+        window = sg.Window('Parâmetros do Relatório', layout)
+        botao, values = window.read()
+        window.close()
+        return None if botao == 'Cancelar' else values
 
     def mostrar_relatorio_vendas(self, vendas):
-        print("\n=== Relatório de Vendas ===")
+        texto = "=== Relatório de Vendas ===\n\n"
         if not vendas:
-            print("Nenhuma venda no período.")
-            return
-        for venda in vendas:
-            print(f"ID: {venda.id} | Data: {venda.data} | Afiliado: {venda.afiliado.nome} | Produto: {venda.produto.nome} | Quantidade: {venda.quantidade} | Total: R${venda.total:.2f}")
+            texto += "Nenhuma venda no período.\n"
+        else:
+            for venda in vendas:
+                texto += (f"ID: {venda['id']} | Data: {venda['data']} | Afiliado: {venda['afiliado']} | "
+                         f"Produto: {venda['produto']} | Quantidade: {venda['quantidade']} | "
+                         f"Total: R${venda['total']:.2f}\n")
+
+        layout = [
+            [sg.Multiline(texto, size=(100, min(25, len(vendas)+6)), disabled=True)],
+            [sg.Button("Fechar")]
+        ]
+
+        window = sg.Window("Relatório de Vendas", layout)
+        window.read()
+        window.close()
 
     def mostrar_relatorio_financeiro(self, pagamentos):
-        print("\n=== Relatório Financeiro ===")
+        texto = "=== Relatório Financeiro ===\n\n"
         if not pagamentos:
-            print("Nenhum pagamento no período.")
-            return
-        for pagamento in pagamentos:
-            print(f"ID: {pagamento.id} | Data: {pagamento.data} | Afiliado: {pagamento.afiliado.nome} | Valor Pago: R${pagamento.valorPago:.2f}")
+            texto += "Nenhum pagamento no período.\n"
+        else:
+            for pagamento in pagamentos:
+                texto += (f"ID: {pagamento['id']} | Data: {pagamento['data']} | "
+                         f"Afiliado: {pagamento['afiliado']} | "
+                         f"Valor Pago: R${pagamento['valorPago']:.2f}\n")
+
+        layout = [
+            [sg.Multiline(texto, size=(100, min(25, len(pagamentos)+6)), disabled=True)],
+            [sg.Button("Fechar")]
+        ]
+
+        window = sg.Window("Relatório Financeiro", layout)
+        window.read()
+        window.close()
+
+    def mostrar_mensagem_popup(self, mensagem):
+        sg.popup(mensagem)
+
 
 class ControllerRelatorio:
     def __init__(self, tela, controller_venda, controller_pagamento, controller_afiliado):
@@ -1563,59 +1586,125 @@ class ControllerRelatorio:
         self.__controller_afiliado = controller_afiliado
 
     def executar(self):
+        self.__tela.init_components()
         while True:
-            opc = self.__tela.mostrar_menu()
-            if opc == '1':
-                self.gerar_relatorio_vendas()
-            elif opc == '2':
-                self.gerar_relatorio_financeiro()
-            elif opc == '0':
+            botao, opc = self.__tela.mostrar_menu()
+            if botao == 'Confirmar':
+                self.__tela.close()
+                if opc['1'] == True:
+                    self.gerar_relatorio_vendas()
+                elif opc['2'] == True:
+                    self.gerar_relatorio_financeiro()
+                else:
+                    self.__tela.mostrar_mensagem_popup("Opção inválida!")
+                self.__tela.init_components()
+            elif botao == 'Voltar' or botao is None:
+                self.__tela.close()
                 break
-            else:
-                print("Opção inválida!")
 
     def gerar_relatorio_vendas(self):
         try:
             dados = self.__tela.ler_dados()
-            data_inicial, data_final, afiliado_id = dados
+            if dados is None:
+                return
 
+            data_inicial_str = dados['data_inicial']
+            data_final_str = dados['data_final']
+            afiliado_id_str = dados['afiliado_id']
+
+            if not data_inicial_str or not data_final_str:
+                raise CampoObrigatorioException("Data inicial e final")
+
+            try:
+                data_inicial = date.fromisoformat(data_inicial_str)
+                data_final = date.fromisoformat(data_final_str)
+            except ValueError:
+                raise DadoInvalidoException("Data", "formato inválido", "Use AAAA-MM-DD")
+
+            if data_inicial > data_final:
+                raise DadoInvalidoException("Datas", "inicial maior que final")
+
+            afiliado_id = None
             afiliado = None
-            if afiliado_id is not None:
-                for a in self.__controller_afiliado.afiliado_DAO.get_all():
-                    if a.id == afiliado_id:
-                        afiliado = a
-                        break
-                if afiliado is None and afiliado_id is not None:
+            if afiliado_id_str:
+                try:
+                    afiliado_id = int(afiliado_id_str)
+                except ValueError:
+                    raise DadoInvalidoException("ID Afiliado", afiliado_id_str, "Deve ser um número inteiro")
+
+                afiliado = self.__controller_afiliado.afiliado_DAO.get(afiliado_id)
+                if not afiliado:
                     raise EntidadeNaoEncontradaException("Afiliado", afiliado_id)
-            
-            relatorio = Relatorio((data_inicial, data_final), afiliado)
-            vendas_filtradas = relatorio.gerarRelatorioVendas(self.__controller_venda.venda_DAO.get_all())
+
+            vendas_filtradas = []
+            for venda in self.__controller_venda.venda_DAO.get_all():
+                if data_inicial <= venda.data <= data_final:
+                    if afiliado is None or venda.afiliado.id == afiliado.id:
+                        vendas_filtradas.append({
+                            'id': venda.id,
+                            'data': str(venda.data),
+                            'afiliado': venda.afiliado.nome,
+                            'produto': venda.produto.nome,
+                            'quantidade': venda.quantidade,
+                            'total': venda.total
+                        })
+
             self.__tela.mostrar_relatorio_vendas(vendas_filtradas)
+
         except Exception as e:
-            print(f"Erro ao gerar relatório de vendas: {e}")
+            self.__tela.mostrar_mensagem_popup(f"Erro ao gerar relatório de vendas: {e}")
 
     def gerar_relatorio_financeiro(self):
         try:
             dados = self.__tela.ler_dados()
-            data_inicial, data_final, afiliado_id = dados
+            if dados is None:
+                return
 
+            data_inicial_str = dados['data_inicial']
+            data_final_str = dados['data_final']
+            afiliado_id_str = dados['afiliado_id']
+
+            if not data_inicial_str or not data_final_str:
+                raise CampoObrigatorioException("Data inicial e final")
+
+            try:
+                data_inicial = date.fromisoformat(data_inicial_str)
+                data_final = date.fromisoformat(data_final_str)
+            except ValueError:
+                raise DadoInvalidoException("Data", "formato inválido", "Use AAAA-MM-DD")
+
+            if data_inicial > data_final:
+                raise DadoInvalidoException("Datas", "inicial maior que final")
+
+            afiliado_id = None
             afiliado = None
-            if afiliado_id is not None:
-                for a in self.__controller_afiliado.afiliado_DAO.get_all():
-                    if a.id == afiliado_id:
-                        afiliado = a
-                        break
-                if afiliado is None and afiliado_id is not None:
+            if afiliado_id_str:
+                try:
+                    afiliado_id = int(afiliado_id_str)
+                except ValueError:
+                    raise DadoInvalidoException("ID Afiliado", afiliado_id_str, "Deve ser um número inteiro")
+
+                afiliado = self.__controller_afiliado.afiliado_DAO.get(afiliado_id)
+                if not afiliado:
                     raise EntidadeNaoEncontradaException("Afiliado", afiliado_id)
-            
-            relatorio = Relatorio((data_inicial, data_final), afiliado)
-            pagamentos_filtrados = relatorio.gerarRelatorioFinanceiro(self.__controller_pagamento.pagamento_DAO.get_all())
+
+            pagamentos_filtrados = []
+            for pagamento in self.__controller_pagamento.pagamento_DAO.get_all():
+                if data_inicial <= pagamento.data <= data_final:
+                    if afiliado is None or pagamento.afiliado.id == afiliado.id:
+                        pagamentos_filtrados.append({
+                            'id': pagamento.id,
+                            'data': str(pagamento.data),
+                            'afiliado': f"{pagamento.afiliado.nome} (ID: {pagamento.afiliado.id})",
+                            'valorPago': pagamento.valorPago
+                        })
+
             self.__tela.mostrar_relatorio_financeiro(pagamentos_filtrados)
+
         except Exception as e:
-            print(f"Erro ao gerar relatório financeiro: {e}")
+            self.__tela.mostrar_mensagem_popup(f"Erro ao gerar relatório financeiro: {e}")
 
 class ControllerSistema:
-    __instance = None
     def __init__(self):
         self.__window = None
         self.init_components()
