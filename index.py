@@ -883,46 +883,106 @@ class VendaDAO(DAO):
             return super().remove(key)
 
 class TelaVenda:
+    def __init__(self):
+        self.__window = None
+
+    def init_components(self):
+        sg.ChangeLookAndFeel('Reddit')
+        layout = [
+            [sg.Text('Escolha uma opção')],
+            [sg.Radio('Registrar venda', "RD1", default=False, key='1')],
+            [sg.Radio('Listar vendas', "RD1", default=False, key='2')],
+            [sg.Radio('Modificar venda', "RD1", default=False, key='3')],
+            [sg.Radio('Excluir venda', "RD1", default=False, key='4')],
+            [sg.Submit('Confirmar'), sg.Cancel('Cancelar')]
+        ]
+        self.__window = sg.Window('Sistema de Vendas').Layout(layout)
+
+    def close(self):
+        if self.__window:
+            self.__window.Close()
+        self.__window = None
+
     def mostrar_menu(self):
-        print("\n=== Menu vendas ===")
-        print("1. Registrar venda")
-        print("2. Listar vendas")
-        print("3. Modificar venda") 
-        print("4. Excluir venda") 
-        print("0. Voltar")
-        return input("Escolha uma opção: ")
+        botao, opc = self.__window.Read()
+        return botao, opc
 
     def ler_dados(self):
-        try:
-            id = int(input("Id: ").strip())
-        except ValueError:
-            raise DadoInvalidoException("Id", "não numérico", "Id deve ser um número inteiro")
+        layout = [
+            [sg.Text('Registrar Nova Venda')],
+            [sg.Text('ID', size=(15, 1)), sg.InputText(key='id')],
+            [sg.Text('Data (AAAA-MM-DD)', size=(15, 1)), sg.InputText(key='data')],
+            [sg.Text('ID Afiliado', size=(15, 1)), sg.InputText(key='afiliado_id')],
+            [sg.Text('Código Produto', size=(15, 1)), sg.InputText(key='produto_codigo')],
+            [sg.Text('Quantidade', size=(15, 1)), sg.InputText(key='quantidade')],
+            [sg.Submit('Confirmar'), sg.Cancel('Cancelar')]
+        ]
 
-        data_str = input("Data no formato AAAA-MM-DD: ").strip()
-        try:
-            data = date.fromisoformat(data_str)
-        except ValueError:
-            raise DadoInvalidoException("Data", data_str, "Formato de data inválido. Use AAAA-MM-DD")
+        window = sg.Window('Registrar Venda', layout)
+        botao, values = window.read()
+        window.close()
+        return None if botao == 'Cancelar' else values
 
-        try:
-            afiliado_id = int(input("Id do Afiliado: ").strip())
-        except ValueError:
-            raise DadoInvalidoException("Afiliado", "não numérico", "ID do Afiliado deve ser um número inteiro")
+    def mostrar_vendas(self, lista_vendas):
+        texto = "=== Lista de Vendas ===\n\n"
+        for info in lista_vendas:
+            texto += (f"ID: {info['id']} | Data: {info['data']} | "
+                      f"Afiliado: {info['afiliado']} | Produto: {info['produto']} | "
+                      f"Quantidade: {info['quantidade']} | Total: R${info['total']:.2f} | "
+                      f"Status: {info['pagamento_afiliado']}\n")
 
-        produto_codigo = input("Código do Produto: ").strip()
-        if not produto_codigo:
-            raise CampoObrigatorioException("Código do Produto")
+        layout = [
+            [sg.Multiline(texto, size=(100, len(lista_vendas) + 6), disabled=True)],
+            [sg.Button("Fechar")]
+        ]
 
-        quantidade_str = input("Quantidade: ").strip()
-        try:
-            quantidade = int(quantidade_str)
-        except ValueError:
-            raise DadoInvalidoException("Quantidade", quantidade_str, "Quantidade deve ser um número inteiro")
+        window = sg.Window("Vendas Registradas", layout)
+        window.read()
+        window.close()
 
-        return id, data, afiliado_id, produto_codigo, quantidade
+    def selecionar_venda(self, titulo: str):
+        layout = [
+            [sg.Text(titulo)],
+            [sg.Text('ID da Venda:'), sg.InputText(key='id')],
+            [sg.Submit('Confirmar'), sg.Cancel('Cancelar')]
+        ]
+        window = sg.Window('Selecionar Venda', layout)
+        botao, values = window.read()
+        window.close()
+        return None if botao == 'Cancelar' else values['id']
 
-    def mostrar_venda(self, info):
-        print(f"Id: {info['id']} | Data: {info['data']} | Afiliado: {info['afiliado']} | Produto: {info['produto']} | Quantidade: {info['quantidade']} | Total: R${info['total']} | Status Pagamento: {info.get('pagamento_afiliado', '')}")
+    def modificar_dados(self, venda_data):
+        layout = [
+            [sg.Text('Modificar Venda')],
+            [sg.Text('ID Atual:'), sg.Text(str(venda_data['id']), key='id_atual')],
+            [sg.Text('Novo ID:'), sg.InputText(str(venda_data['id']), key='id')],
+            [sg.Text('Nova Data (AAAA-MM-DD):'), sg.InputText(venda_data['data'], key='data')],
+            [sg.Text('Novo ID Afiliado:'), sg.InputText(str(venda_data['afiliado_id']), key='afiliado_id')],
+            [sg.Text('Novo Código Produto:'), sg.InputText(venda_data['produto_codigo'], key='produto_codigo')],
+            [sg.Text('Nova Quantidade:'), sg.InputText(str(venda_data['quantidade']), key='quantidade')],
+            [sg.Submit('Confirmar'), sg.Cancel('Cancelar')]
+        ]
+
+        window = sg.Window('Modificar Venda', layout)
+        botao, values = window.read()
+        window.close()
+        return None if botao == 'Cancelar' else values
+
+    def confirmar_exclusao(self, venda_data):
+        layout = [
+            [sg.Text(f'Confirmar exclusão da venda?')],
+            [sg.Text(f'ID: {venda_data["id"]}')],
+            [sg.Text(f'Produto: {venda_data["produto"]}')],
+            [sg.Text(f'Quantidade: {venda_data["quantidade"]}')],
+            [sg.Submit('Confirmar'), sg.Cancel('Cancelar')]
+        ]
+        window = sg.Window('Confirmar Exclusão', layout)
+        botao, _ = window.read()
+        window.close()
+        return botao == 'Confirmar'
+
+    def mostrar_mensagem_popup(self, mensagem):
+        sg.popup(mensagem)
 
 class ControllerVenda:
     def __init__(self, tela, controller_afiliado, controller_produto):
@@ -938,163 +998,207 @@ class ControllerVenda:
     @venda_DAO.setter
     def venda_DAO(self, venda_DAO):
         if not isinstance(venda_DAO, VendaDAO):
-            raise TypeError("lista Vendas deve ser uma lista de Venda")
-        for item in venda_DAO:
-            if not isinstance(item, Venda):
-                raise TypeError("Cada item em lista Vendas deve ser do tipo Venda")
+            raise TypeError("venda_DAO deve ser uma instância de VendaDAO")
+
         self.__venda_DAO = venda_DAO
 
     def executar(self):
+        self.__tela.init_components()
         while True:
-            opc = self.__tela.mostrar_menu()
-            if opc == '1':
-                self.__cadastrar()
-            elif opc == '2':
-                self.__listar()
-            elif opc == '3':
-                self.__modificar()
-            elif opc == '4':
-                self.__excluir()
-            elif opc == '0':
+            botao, opc = self.__tela.mostrar_menu()
+            if botao == 'Confirmar':
+                self.__tela.close()
+                if opc['1'] == True:
+                    self.__cadastrar()
+                elif opc['2'] == True:
+                    self.__listar()
+                elif opc['3'] == True:
+                    self.__modificar()
+                elif opc['4'] == True:
+                    self.__excluir()
+                else:
+                    self.__tela.mostrar_mensagem_popup("Opção inválida!")
+                self.__tela.init_components()
+            elif botao == 'Cancelar':
+                self.__tela.close()
                 break
-            else:
-                print("Opção inválida!")
 
     def __cadastrar(self):
-        try:
-            dados = self.__tela.ler_dados()
-
-            for item in self.__venda_DAO.get_all():
-                if item.id == dados[0]:
-                    raise DadoInvalidoException("Id", dados[0], "ID já existe")
-                    
-            id, data, afiliado_id, produto_codigo, quantidade = dados
-
-            afiliado = None
-            for a in self.__controller_afiliado.afiliado_DAO.get_all():
-                if a.id == afiliado_id:
-                    afiliado = a
+        while True:
+            try:
+                dados = self.__tela.ler_dados()
+                if dados is None:
                     break
-            if afiliado is None:
-                raise EntidadeNaoEncontradaException("Afiliado", afiliado_id)
 
-            produto = None
-            for p in self.__controller_produto.produto_DAO.get_all():
-                if p.codigo == produto_codigo:
-                    produto = p
-                    break
-            if produto is None:
-                raise EntidadeNaoEncontradaException("Produto", produto_codigo)
+                id = int(dados['id'])
+                data_str = dados['data']
+                afiliado_id = int(dados['afiliado_id'])
+                produto_codigo = dados['produto_codigo']
+                quantidade = int(dados['quantidade'])
 
-            venda = Venda(id, data, afiliado, produto, quantidade)
-            venda.afiliado.vendas.append(venda)
-            self.__venda_DAO.add(venda)
-            print("Venda registrada com sucesso!")
-        except Exception as e:
-            print(f"Erro ao cadastrar: {e}")
+                if self.__venda_DAO.get(id):
+                    raise DadoInvalidoException("ID", id, "ID já existe")
+
+                afiliado = None
+                for a in self.__controller_afiliado.afiliado_DAO.get_all():
+                    if a.id == afiliado_id:
+                        afiliado = a
+                        break
+                if afiliado is None:
+                    raise EntidadeNaoEncontradaException("Afiliado", afiliado_id)
+
+                produto = None
+                for p in self.__controller_produto.produto_DAO.get_all():
+                    if p.codigo == produto_codigo:
+                        produto = p
+                        break
+                if produto is None:
+                    raise EntidadeNaoEncontradaException("Produto", produto_codigo)
+
+                try:
+                    data = date.fromisoformat(data_str)
+                except ValueError:
+                    raise DadoInvalidoException("Data", data_str, "Formato inválido. Use AAAA-MM-DD")
+
+                venda = Venda(id, data, afiliado, produto, quantidade)
+                afiliado.vendas.append(venda)
+                self.__venda_DAO.add(venda)
+
+                self.__tela.mostrar_mensagem_popup("Venda registrada com sucesso!")
+                break
+            except Exception as e:
+                self.__tela.mostrar_mensagem_popup(f"Erro ao registrar venda: {e}")
 
     def __listar(self):
         vendas = self.__venda_DAO.get_all()
-        print("\n=== Lista de Vendas ===")
         if not vendas:
-            print("Nenhuma venda registrada.")
+            self.__tela.mostrar_mensagem_popup("Nenhuma venda registrada")
         else:
+            lista_vendas = []
             for v in vendas:
                 info = {
                     'id': v.id,
-                    'data': v.data,
+                    'data': str(v.data),
                     'afiliado': v.afiliado.nome,
                     'produto': v.produto.nome,
                     'quantidade': v.quantidade,
                     'total': v.total,
                     'pagamento_afiliado': v.pagamento_afiliado
                 }
-                self.__tela.mostrar_venda(info)
+                lista_vendas.append(info)
+            self.__tela.mostrar_vendas(lista_vendas)
 
     def __modificar(self):
         try:
-            venda_id = int(input("ID da venda: "))
-            venda = None
-
-            for v in self.__venda_DAO.get_all():
-                if v.id == venda_id:
-                    venda = v
-                    break
+            id_str = self.__tela.selecionar_venda("Digite o ID da venda para modificar")
+            if not id_str: 
+                return
+                
+            id = int(id_str)
+            venda = self.__venda_DAO.get(id)
             
             if not venda:
-                raise EntidadeNaoEncontradaException("Venda", venda_id)
+                raise EntidadeNaoEncontradaException("Venda", id)
 
-            if venda.pagamento_afiliado == 'realizado':
+            if venda.pagamento_afiliado != 'não realizado':
                 raise ViolacaoRegraNegocioException(
-                    "Não é permitido modificar venda com status pagamento realizado"
+                    "Não é permitido modificar venda com pagamento realizado ou em andamento"
                 )
-                
-            print("\nDeixe em branco para manter o valor atual")
 
-            nova_data = input(f"Data atual ({venda.data}): ").strip()
-            if nova_data:
-                try:
-                    venda.data = date.fromisoformat(nova_data)
-                except ValueError:
-                    raise DadoInvalidoException("Data", nova_data, "Formato de data inválido. Use AAAA-MM-DD")
+            venda_data = {
+                'id': venda.id,
+                'data': str(venda.data),
+                'afiliado_id': venda.afiliado.id,
+                'produto_codigo': venda.produto.codigo,
+                'quantidade': venda.quantidade
+            }
 
-            novo_afiliado_id = input(f"ID Afiliado atual ({venda.afiliado.id}): ").strip()
-            if novo_afiliado_id:
-                try:
-                    novo_afiliado_id = int(novo_afiliado_id)
-                except ValueError:
-                    raise DadoInvalidoException("Afiliado", novo_afiliado_id, "ID do Afiliado deve ser numérico")
-                    
-                afiliado = None
-                for a in self.__controller_afiliado.afiliado_DAO.get_all():
-                    if a.id == novo_afiliado_id:
-                        afiliado = a
-                        break
-                if not afiliado:
-                    raise EntidadeNaoEncontradaException("Afiliado", novo_afiliado_id)
-                venda.afiliado = afiliado
+            dados = self.__tela.modificar_dados(venda_data)
+            if not dados:
+                return
 
-            novo_produto_cod = input(f"Código Produto atual ({venda.produto.codigo}): ").strip()
-            if novo_produto_cod:
-                produto = None
-                for p in self.__controller_produto.produto_DAO.get_all():
-                    if p.codigo == novo_produto_cod:
-                        produto = p
-                        break
-                if not produto:
-                    raise EntidadeNaoEncontradaException("Produto", novo_produto_cod)
-                venda.produto = produto
+            novo_id = int(dados['id'])
+            nova_data_str = dados['data']
+            novo_afiliado_id = int(dados['afiliado_id'])
+            novo_produto_codigo = dados['produto_codigo']
+            nova_quantidade = int(dados['quantidade'])
 
-            nova_qtde = input(f"Quantidade atual ({venda.quantidade}): ").strip()
-            if nova_qtde:
-                try:
-                    venda.quantidade = int(nova_qtde)
-                except ValueError:
-                    raise DadoInvalidoException("Quantidade", nova_qtde, "Quantidade deve ser um número inteiro")
+            if novo_id != id and self.__venda_DAO.get(novo_id):
+                raise DadoInvalidoException("ID", novo_id, "ID já existe")
 
+            try:
+                nova_data = date.fromisoformat(nova_data_str)
+            except ValueError:
+                raise DadoInvalidoException("Data", nova_data_str, "Formato inválido. Use AAAA-MM-DD")
+
+            novo_afiliado = None
+            for a in self.__controller_afiliado.afiliado_DAO.get_all():
+                if a.id == novo_afiliado_id:
+                    novo_afiliado = a
+                    break
+            if not novo_afiliado:
+                raise EntidadeNaoEncontradaException("Afiliado", novo_afiliado_id)
+
+            novo_produto = None
+            for p in self.__controller_produto.produto_DAO.get_all():
+                if p.codigo == novo_produto_codigo:
+                    novo_produto = p
+                    break
+            if not novo_produto:
+                raise EntidadeNaoEncontradaException("Produto", novo_produto_codigo)
+
+            venda_antiga = venda
+            venda_antiga.afiliado.vendas.remove(venda)
+            
+            venda.id = novo_id
+            venda.data = nova_data
+            venda.afiliado = novo_afiliado
+            venda.produto = novo_produto
+            venda.quantidade = nova_quantidade
             venda.calcularTotal()
             venda.pagamento_afiliado = 'não realizado'
-            print("Venda atualizada com sucesso!")
+            
+            novo_afiliado.vendas.append(venda)
+            self.__venda_DAO.update(novo_id, venda)
+            
+            self.__tela.mostrar_mensagem_popup("Venda modificada com sucesso!")
             
         except Exception as e:
-            print(f"Erro: {e}")
+            self.__tela.mostrar_mensagem_popup(f"Erro ao modificar venda: {e}")
 
     def __excluir(self):
         try:
-            venda_id = int(input("ID da venda: "))
-            venda = None
-            # exclui pela key
-            v = self.__venda_DAO.get(venda_id)
-            if not v:
-                raise EntidadeNaoEncontradaException("Venda", venda_id)
+            id_str = self.__tela.selecionar_venda("Digite o ID da venda para excluir")
+            if not id_str: 
+                return
                 
-            venda = v
-            venda.afiliado.vendas.remove(venda)
-            self.__venda_DAO.remove(venda_id)
-            print("Venda excluída com sucesso!")
+            id = int(id_str)
+            venda = self.__venda_DAO.get(id)
+            
+            if not venda:
+                raise EntidadeNaoEncontradaException("Venda", id)
+            
+            if venda.pagamento_afiliado != 'não realizado':
+                raise ViolacaoRegraNegocioException(
+                    "Não é permitido excluir venda com pagamento realizado ou em andamento"
+                )
 
+            venda_data = {
+                "id": venda.id,
+                "produto": venda.produto.nome,
+                "quantidade": venda.quantidade
+            }
+
+            if not self.__tela.confirmar_exclusao(venda_data):
+                return
+
+            venda.afiliado.vendas.remove(venda)
+            self.__venda_DAO.remove(id)
+            
+            self.__tela.mostrar_mensagem_popup("Venda excluída com sucesso!")
+            
         except Exception as e:
-            print(f"Erro: {e}")
+            self.__tela.mostrar_mensagem_popup(f"Erro ao excluir venda: {e}")
 
 class Comissao:
     def __init__(self, vendedor, recebedor, venda, tipo, valor):
