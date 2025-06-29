@@ -589,7 +589,6 @@ class TelaProduto:
         layout = [
             [sg.Text('Modificar Produto')],
             [sg.Text('Código atual:'), sg.Text(str(produto_data['codigo']), key='codigo_atual')],
-            [sg.Text('Novo Código:'), sg.InputText(str(produto_data['codigo']), key='codigo')],
             [sg.Text('Nome:'), sg.InputText(produto_data['nome'], key='nome')],
             [sg.Text('Descrição:'), sg.InputText(produto_data['descricao'], key='descricao')],
             [sg.Text('Preço:'), sg.InputText(str(produto_data['preco']), key='preco')],
@@ -615,6 +614,7 @@ class TelaProduto:
     
     def mostrar_mensagem_popup(self, mensagem):
         sg.popup(mensagem)
+
 class ControllerProduto:
     def __init__(self, tela):
         self.__tela = tela
@@ -711,10 +711,7 @@ class ControllerProduto:
             
             if not dados:
                 return
-            
-            novo_codigo = dados['codigo']
-            if novo_codigo != codigo and self.__produto_DAO.get(novo_codigo):
-                raise DadoInvalidoException("Código", novo_codigo, "Código já existe")
+
             nome = dados['nome']
             descricao = dados['descricao']
             preco = float(dados['preco'])
@@ -723,8 +720,7 @@ class ControllerProduto:
                     produto.preco = float(preco)
                 except ValueError:
                     raise DadoInvalidoException("Preço", preco, "Preço deve ser numérico")
-    
-            produto.codigo = codigo
+
             produto.detalhes.nome = nome
             produto.detalhes.descricao = descricao
             produto.preco = preco
