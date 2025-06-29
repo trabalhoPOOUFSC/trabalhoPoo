@@ -181,53 +181,44 @@ class AfiliadoDAO(DAO):
 class TelaAfiliado:
     def __init__(self):
         self.__window = None
-        self.init_components()
-    
+
     def init_components(self):
         sg.ChangeLookAndFeel('Reddit')
         layout = [
-                        [sg.Text('Escolha uma opção')],
-                        [sg.Radio('Cadastrar afiliado', "RD1", default = False, key='1')],
-                        [sg.Radio('Listar afiliado', "RD1", default = False, key='2')],
-                        [sg.Radio('Modificar afiliado', "RD1", default = False, key='3')],
-                        [sg.Radio('Excluir afiliado', "RD1", default = False, key='4')],
-                        [sg.Submit('Confirmar'), sg.Cancel('Cancelar')]
-            ]
-        
+            [sg.Text('Escolha uma opção')],
+            [sg.Radio('Cadastrar afiliado', "RD1", default=False, key='1')],
+            [sg.Radio('Listar afiliados', "RD1", default=False, key='2')],
+            [sg.Radio('Modificar afiliado', "RD1", default=False, key='3')],
+            [sg.Radio('Excluir afiliado', "RD1", default=False, key='4')],
+            [sg.Submit('Confirmar'), sg.Cancel('Cancelar')]
+        ]
         self.__window = sg.Window('Sistema Financeiro de Afiliados').Layout(layout)
 
     def close(self):
-        self.__window.Close()
+        if self.__window:
+            self.__window.Close()
         self.__window = None
+
     def mostrar_menu(self):
         botao, opc = self.__window.Read()
         return botao, opc
-    
+
     def ler_dados(self):
-        while True:
-            layout = [
-                [sg.Text('Incluir Novo Cliente')],
-                [sg.Text('Id', size=(15, 1)), sg.InputText(key='id')],
-                [sg.Text('Nome', size=(15, 1)), sg.InputText(key='nome')],
-                [sg.Text('Contato', size=(15, 1)), sg.InputText(key='contato')],
-                [sg.Text('Parent', size=(15, 1)), sg.InputText(key='parent')],
-                [sg.Submit('Confirmar'), sg.Cancel('Cancelar')]
-            ]
+        layout = [
+            [sg.Text('Incluir Novo Afiliado')],
+            [sg.Text('Id', size=(15, 1)), sg.InputText(key='id')],
+            [sg.Text('Nome', size=(15, 1)), sg.InputText(key='nome')],
+            [sg.Text('Contato', size=(15, 1)), sg.InputText(key='contato')],
+            [sg.Text('Parent ID', size=(15, 1)), sg.InputText(key='parent')],
+            [sg.Submit('Confirmar'), sg.Cancel('Cancelar')]
+        ]
 
-            window = sg.Window('Cadastro de Afiliado', layout)
-            botao, values = window.read()
-            window.close()
-
-            if botao == 'Cancelar':
-                return None
-            if botao == 'Confirmar':
-                return values
+        window = sg.Window('Cadastro de Afiliado', layout)
+        botao, values = window.read()
+        window.close()
+        return None if botao == 'Cancelar' else values
 
     def mostrar_afiliado(self, lista_afiliados):
-        if not lista_afiliados:
-            sg.popup("Nenhum afiliado cadastrado.")
-            return
-
         texto = "=== Lista de Afiliados ===\n\n"
         for info in lista_afiliados:
             parent_id = info['parent']
@@ -241,15 +232,50 @@ class TelaAfiliado:
         ]
 
         window = sg.Window("Afiliados Cadastrados", layout)
-        while True:
-            event, _ = window.read()
-            if event in (sg.WINDOW_CLOSED, "Fechar"):
-                break
+        window.read()
         window.close()
 
-        def opcao_invalida(self):
-            sg.popup("opção invalida!")
-            return
+    def selecionar_afiliado(self, titulo: str):
+        layout = [
+            [sg.Text(titulo)],
+            [sg.Text('ID do Afiliado:'), sg.InputText(key='id')],
+            [sg.Submit('Confirmar'), sg.Cancel('Cancelar')]
+        ]
+        window = sg.Window('Selecionar Afiliado', layout)
+        botao, values = window.read()
+        window.close()
+        return None if botao == 'Cancelar' else values['id']
+
+    def modificar_dados(self, afiliado_data):
+        layout = [
+            [sg.Text('Modificar Afiliado')],
+            [sg.Text('ID Atual:'), sg.Text(str(afiliado_data['id']), key='id_atual')],
+            [sg.Text('Novo ID:'), sg.InputText(str(afiliado_data['id']), key='id')],
+            [sg.Text('Nome:'), sg.InputText(afiliado_data['nome'], key='nome')],
+            [sg.Text('Contato:'), sg.InputText(afiliado_data['contato'], key='contato')],
+            [sg.Text('Parent ID:'), sg.InputText(str(afiliado_data['parent']) if afiliado_data['parent'] else '', key='parent')],
+            [sg.Submit('Confirmar'), sg.Cancel('Cancelar')]
+        ]
+
+        window = sg.Window('Modificar Afiliado', layout)
+        botao, values = window.read()
+        window.close()
+        return None if botao == 'Cancelar' else values
+
+    def confirmar_exclusao(self, afiliado_data):
+        layout = [
+            [sg.Text(f'Confirmar exclusão do afiliado?')],
+            [sg.Text(f'ID: {afiliado_data["id"]}')],
+            [sg.Text(f'Nome: {afiliado_data["nome"]}')],
+            [sg.Submit('Confirmar'), sg.Cancel('Cancelar')]
+        ]
+        window = sg.Window('Confirmar Exclusão', layout)
+        botao, _ = window.read()
+        window.close()
+        return botao == 'Confirmar'
+
+    def mostrar_mensagem_popup(self, mensagem):
+        sg.popup(mensagem)
 
 class ControllerAfiliado:
     def __init__(self, tela):
@@ -315,11 +341,11 @@ class ControllerAfiliado:
                 afiliado = Afiliado(id, nome, contato, parent)
                 self.__afiliado_DAO.add(afiliado)
 
-                sg.popup("Afiliado cadastrado com sucesso!")
+                self.__tela.mostrar_mensagem_popup("Afiliado cadastrado com sucesso!")
 
                 break
             except Exception as e:
-                sg.popup(f"Erro ao cadastrar afiliado: {e}")
+                self.__tela.mostrar_mensagem_popup(f"Erro ao cadastrar afiliado: {e}")
             
 
     def __listar(self):
@@ -338,75 +364,80 @@ class ControllerAfiliado:
 
     def __modificar(self):
         try:
-            id = int(input("Digite o ID do afiliado que deseja modificar: ").strip())
-            afiliado = None
-
-            for a in self.__afiliado_DAO.get_all():
-                if a.id == id:
-                    afiliado = a
-                    break
+            id_str = self.__tela.selecionar_afiliado("Digite o ID do afiliado para modificar")
+            if not id_str: return
+            id = int(id_str)
+            
+            afiliado = self.__afiliado_DAO.get(id)
             if not afiliado:
                 raise EntidadeNaoEncontradaException("Afiliado", id)
+            
+            afiliado_data = {
+                'id': afiliado.id,
+                'nome': afiliado.nome,
+                'contato': afiliado.contato,
+                'parent': afiliado.parent.id if afiliado.parent else None
+            }
 
-            print("Digite os novos dados do afiliado:")
+            dados = self.__tela.modificar_dados(afiliado_data)
+            if not dados: return
 
-            novo_nome = input("Nome: ").strip()
-            if novo_nome:
-                afiliado.nome = novo_nome
+            novo_id = int(dados['id'])
+            nome = dados['nome']
+            contato = dados['contato']
+            parent_id = dados['parent']
 
-            try:
-                novo_id = int(input("ID: ").strip())
-                if novo_id:
-                    afiliado.id = novo_id
-            except ValueError:
-                raise DadoInvalidoException("ID", "não numérico", "ID deve ser um número inteiro")
-                
-            novo_contato = input("Contato: ").strip()
-            if novo_contato:
-                afiliado.contato = novo_contato
+            if novo_id != id and self.__afiliado_DAO.get(novo_id):
+                raise DadoInvalidoException("ID", novo_id, "ID já existe")
 
-            novo_parent_id = input("Parent atual: ").strip()
+            afiliado.id = novo_id
+            afiliado.nome = nome
+            afiliado.contato = contato
 
-            if novo_parent_id:
-                parent = None
-                for a in self.__afiliado_DAO.get_all():
-                    if a.id == int(novo_parent_id):
-                        parent = a
-                        break
+            if parent_id:
+                parent = self.__afiliado_DAO.get(int(parent_id))
                 if not parent:
-                    print("Afiliado parent não encontrado. Mantendo o atual.")
-                else:
-                    afiliado.parent = parent
+                    raise EntidadeNaoEncontradaException("Afiliado", parent_id)
+                afiliado.parent = parent
             else:
                 afiliado.parent = None
-            print("Afiliado modificado com sucesso!")
+
+            self.__afiliado_DAO.update(afiliado)
+
+            self.__tela.mostrar_mensagem_popup("Afiliado modificado com sucesso!")
+            
         except Exception as e:
-            print(f"Erro ao modificar afiliado: {e}")
+            self.__tela.mostrar_mensagem_popup(f"Erro ao modificar afiliado: {e}")
 
     def __excluir(self):
         try:
-            id = int(input("Digite o ID do afiliado que deseja excluir: ").strip())
-            afiliado = None
-
-            for a in self.__afiliado_DAO.get_all():
-                if a.id == id:
-                    afiliado = a
-                    break
-
+            id_str = self.__tela.selecionar_afiliado("Digite o ID do afiliado para excluir")
+            if not id_str: return
+            id = int(id_str)
+            
+            afiliado = self.__afiliado_DAO.get(id)
             if not afiliado:
                 raise EntidadeNaoEncontradaException("Afiliado", id)
 
             for a in self.__afiliado_DAO.get_all():
-                if a.parent == afiliado:
+                if a.parent and a.parent.id == id:
                     raise ViolacaoRegraNegocioException(
                         f"Não é possível excluir {afiliado.nome} pois é parente de outros afiliados"
                     )
-                    
-            self.__afiliado_DAO.remove(afiliado.id)
-            print("Afiliado excluído com sucesso!")
+                
+            dados_afiliado = {
+                "id": afiliado.id,
+                "nome": afiliado.nome
+            }
 
+            if not self.__tela.confirmar_exclusao(dados_afiliado):
+                return
+
+            self.__afiliado_DAO.remove(id)
+            self.__tela.mostrar_mensagem_popup("Afiliado excluído com sucesso!")
+            
         except Exception as e:
-            print(f"Erro ao excluir afiliado: {e}")
+            self.__tela.mostrar_mensagem_popup(f"Erro ao excluir afiliado: {e}")
 
 class Produto:
     def __init__(self, codigo, nome, descricao, preco):
