@@ -1796,7 +1796,6 @@ class ControllerSistema:
                 elif key['5'] == True:
                     self.__controller_relatorio.executar()
             elif button == 'Cancelar':
-                print("Encerrando...")
                 break
             else:
                 sg.popup("opção invalida!")
