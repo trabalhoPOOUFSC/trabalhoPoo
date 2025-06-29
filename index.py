@@ -430,30 +430,10 @@ class ControllerAfiliado:
         except Exception as e:
             self.__tela.mostrar_mensagem_popup(f"Erro ao excluir afiliado: {e}")
 
-class Produto:
-    def __init__(self, codigo, nome, descricao, preco):
-        if not isinstance(codigo, str):
-            raise TypeError("codigo deve ser str")
-        if not isinstance(nome, str):
-            raise TypeError("nome deve ser str")
-        if not isinstance(descricao, str):
-            raise TypeError("descricao deve ser str")
-        if not isinstance(preco, (int, float)):
-            raise TypeError("preco deve ser numérico")
-        self.__codigo = codigo
+class ProdutoDetalhes:
+    def __init__(self, nome, descricao):
         self.__nome = nome
         self.__descricao = descricao
-        self.__preco = float(preco)
-
-    @property
-    def codigo(self):
-        return self.__codigo
-
-    @codigo.setter
-    def codigo(self, value):
-        if not isinstance(value, str):
-            raise TypeError("codigo deve ser str")
-        self.__codigo = value
 
     @property
     def nome(self):
@@ -474,6 +454,40 @@ class Produto:
         if not isinstance(value, str):
             raise TypeError("descricao deve ser str")
         self.__descricao = value
+
+class Produto:
+    def __init__(self, codigo, nome, descricao, preco):
+        if not isinstance(codigo, str):
+            raise TypeError("codigo deve ser str")
+        if not isinstance(nome, str):
+            raise TypeError("nome deve ser str")
+        if not isinstance(descricao, str):
+            raise TypeError("descricao deve ser str")
+        if not isinstance(preco, (int, float)):
+            raise TypeError("preco deve ser numérico")
+        self.__codigo = codigo
+        self.__detalhes = ProdutoDetalhes(nome, descricao)
+        self.__preco = float(preco)
+
+    @property
+    def codigo(self):
+        return self.__codigo
+
+    @codigo.setter
+    def codigo(self, value):
+        if not isinstance(value, str):
+            raise TypeError("codigo deve ser str")
+        self.__codigo = value
+
+    @property
+    def detalhes(self):
+        return self.__detalhes
+
+    @detalhes.setter
+    def detalhes(self, value):
+        if not isinstance(value, ProdutoDetalhes):
+            raise TypeError("detalhes deve ser do tipo ProdutoDetalhes")
+        self.__detalhes = value
 
     @property
     def preco(self):
@@ -568,7 +582,7 @@ class TelaProduto:
         window = sg.Window('Selecionar Produto', layout)
         botao, values = window.read()
         window.close()
-        print('oii')
+
         return None if botao == 'Cancelar' else values['codigo']
 
     def modificar_dados(self, produto_data):
@@ -675,7 +689,7 @@ class ControllerProduto:
         else:
             lista_produtos = []
             for p in produtos:
-                info = {'codigo': p.codigo, 'nome': p.nome, 'descricao': p.descricao, 'preco': p.preco}
+                info = {'codigo': p.codigo, 'nome': p.detalhes.nome, 'descricao': p.detalhes.descricao, 'preco': p.preco}
                 lista_produtos.append(info)
             self.__tela.mostrar_produto(lista_produtos)
 
@@ -689,12 +703,12 @@ class ControllerProduto:
                 raise EntidadeNaoEncontradaException("Produto", codigo)
             produto_data = {
                 'codigo': produto.codigo,
-                'nome': produto.nome,
-                'descricao': produto.descricao,
+                'nome': produto.detalhes.nome,
+                'descricao': produto.detalhes.descricao,
                 'preco': produto.preco
             }
             dados = self.__tela.modificar_dados(produto_data)
-            print(dados)
+            
             if not dados:
                 return
             
@@ -711,8 +725,8 @@ class ControllerProduto:
                     raise DadoInvalidoException("Preço", preco, "Preço deve ser numérico")
     
             produto.codigo = codigo
-            produto.nome = nome
-            produto.descricao = descricao
+            produto.detalhes.nome = nome
+            produto.detalhes.descricao = descricao
             produto.preco = preco
             
             self.__produto_DAO.update(produto)
@@ -745,7 +759,7 @@ class ControllerProduto:
             
             dados_produto = {
                 "codigo": produto.codigo,
-                "nome": produto.nome
+                "nome": produto.detalhes.nome
             }
             if not self.__tela.confirmar_exclusao(dados_produto):
                 return
@@ -1067,7 +1081,7 @@ class ControllerVenda:
                     'id': v.id,
                     'data': str(v.data),
                     'afiliado': v.afiliado.nome,
-                    'produto': v.produto.nome,
+                    'produto': v.produto.detalhes.nome,
                     'quantidade': v.quantidade,
                     'total': v.total,
                     'pagamento_afiliado': v.pagamento_afiliado
@@ -1155,7 +1169,7 @@ class ControllerVenda:
 
             venda_data = {
                 "id": venda.id,
-                "produto": venda.produto.nome,
+                "produto": venda.produto.detalhes.nome,
                 "quantidade": venda.quantidade
             }
 
@@ -1644,7 +1658,7 @@ class ControllerRelatorio:
                             'id': venda.id,
                             'data': str(venda.data),
                             'afiliado': venda.afiliado.nome,
-                            'produto': venda.produto.nome,
+                            'produto': venda.produto.detalhes.nome,
                             'quantidade': venda.quantidade,
                             'total': venda.total
                         })
