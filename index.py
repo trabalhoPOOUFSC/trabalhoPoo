@@ -192,7 +192,7 @@ class TelaAfiliado:
             [sg.Radio('Excluir afiliado', "RD1", default=False, key='4')],
             [sg.Submit('Confirmar'), sg.Cancel('Cancelar')]
         ]
-        self.__window = sg.Window('Sistema Financeiro de Afiliados').Layout(layout)
+        self.__window = sg.Window('Menu de Afiliado').Layout(layout)
 
     def close(self):
         if self.__window:
@@ -515,39 +515,101 @@ class ProdutoDAO(DAO):
             return super().remove(key)
 
 class TelaProduto:
+    def __init__(self):
+        self.__window = None
+
+    def init_components(self):
+        sg.ChangeLookAndFeel('Reddit')
+        layout = [
+            [sg.Text('Escolha uma opção')],
+            [sg.Radio('Cadastrar produto', "RD1", default=False, key='1')],
+            [sg.Radio('Listar produtos', "RD1", default=False, key='2')],
+            [sg.Radio('Modificar produto', "RD1", default=False, key='3')],
+            [sg.Radio('Excluir produto', "RD1", default=False, key='4')],
+            [sg.Submit('Confirmar'), sg.Cancel('Cancelar')]
+        ]
+        self.__window = sg.Window('Menu de Produtos').Layout(layout)
+
+    def close(self):
+        if self.__window:
+            self.__window.Close()
+        self.__window = None
+
     def mostrar_menu(self):
-        print("\n=== Menu Produtos ===")
-        print("1. Cadastrar produto")
-        print("2. Listar produtos")
-        print("3. Modificar produto")
-        print("4. Excluir produto")
-        print("0. Voltar")
-        return input("Escolha uma opção: ")
+        botao, opc = self.__window.Read()
+        return botao, opc
 
     def ler_dados(self):
-        codigo = input("Código: ").strip()
-        if not codigo:
-            raise CampoObrigatorioException("Código")
-            
-        nome = input("Nome: ").strip()
-        if not nome:
-            raise CampoObrigatorioException("Nome")
-            
-        descricao = input("Descrição: ").strip()
-        if not descricao:
-            raise CampoObrigatorioException("Descrição")
-            
-        preco_str = input("Preço: ")
-        try:
-            preco = float(preco_str)
-        except ValueError:
-            raise DadoInvalidoException("Preço", preco_str, "Preço deve ser um valor numérico")
-            
-        return codigo, nome, descricao, preco
+        layout = [
+            [sg.Text('Incluir Novo Produto')],
+            [sg.Text('Código', size=(15, 1)), sg.InputText(key='codigo')],
+            [sg.Text('Nome', size=(15, 1)), sg.InputText(key='nome')],
+            [sg.Text('Descrição', size=(15, 1)), sg.InputText(key='descricao')],
+            [sg.Text('Preço', size=(15, 1)), sg.InputText(key='preco')],
+            [sg.Submit('Confirmar'), sg.Cancel('Cancelar')]
+        ]
 
-    def mostrar_produto(self, info):
-        print(f"Código: {info['codigo']} | Nome: {info['nome']} | Descrição: {info['descricao']} | Preço: {info['preco']}")
+        window = sg.Window('Cadastro de Produto', layout)
+        botao, values = window.read()
+        window.close()
+        return None if botao == 'Cancelar' else values
 
+    def mostrar_produto(self, lista_produtos):
+        texto = "=== Lista de Produtos ===\n\n"
+        for info in lista_produtos:
+            texto += f"Código: {info['codigo']} | Nome: {info['nome']} | Descrição: {info['descricao']} | Preço: {info['preco']}\n"
+
+        layout = [
+            [sg.Multiline(texto, size=(60, len(lista_produtos) + 6), disabled=True)],
+            [sg.Button("Fechar")]
+        ]
+
+        window = sg.Window("Produtos Cadastrados", layout)
+        window.read()
+        window.close()
+
+    def selecionar_produto(self, titulo: str):
+        layout = [
+            [sg.Text(titulo)],
+            [sg.Text('Código do Produto:'), sg.InputText(key='codigo')],
+            [sg.Submit('Confirmar'), sg.Cancel('Cancelar')]
+        ]
+        window = sg.Window('Selecionar Produto', layout)
+        botao, values = window.read()
+        window.close()
+        print('oii')
+        return None if botao == 'Cancelar' else values['codigo']
+
+    def modificar_dados(self, produto_data):
+        layout = [
+            [sg.Text('Modificar Produto')],
+            [sg.Text('Código atual:'), sg.Text(str(produto_data['codigo']), key='codigo_atual')],
+            [sg.Text('Novo Código:'), sg.InputText(str(produto_data['codigo']), key='codigo')],
+            [sg.Text('Nome:'), sg.InputText(produto_data['nome'], key='nome')],
+            [sg.Text('Descrição:'), sg.InputText(produto_data['descricao'], key='descricao')],
+            [sg.Text('Preço:'), sg.InputText(str(produto_data['preco']), key='preco')],
+            [sg.Submit('Confirmar'), sg.Cancel('Cancelar')]
+        ]
+
+        window = sg.Window('Modificar Produto', layout)
+        botao, values = window.read()
+        window.close()
+        return None if botao == 'Cancelar' else values
+
+    def confirmar_exclusao(self, produto_data):
+        layout = [
+            [sg.Text(f'Confirmar exclusão do produto?')],
+            [sg.Text(f'Código: {produto_data["codigo"]}')],
+            [sg.Text(f'Nome: {produto_data["nome"]}')],
+            [sg.Submit('Confirmar'), sg.Cancel('Cancelar')]
+        ]
+        window = sg.Window('Confirmar Exclusão', layout)
+        botao, _ = window.read()
+        window.close()
+        return botao == 'Confirmar'
+    
+    def mostrar_mensagem_popup(self, mensagem):
+        sg.popup(mensagem)
 class ControllerProduto:
     def __init__(self, tela):
         self.__tela = tela
@@ -571,96 +633,110 @@ class ControllerProduto:
         self.__produto_DAO = value
 
     def executar(self):
+        self.__tela.init_components()
         while True:
-            opc = self.__tela.mostrar_menu()
-            if opc == '1':
-                self.__cadastrar()
-            elif opc == '2':
-                self.__listar()
-            elif opc == '3':
-                self.__modificar()
-            elif opc == '4':
-                self.__excluir()
-            elif opc == '0':
+            botao, opc = self.__tela.mostrar_menu()
+            if botao == 'Confirmar':
+                self.__tela.close()
+                if opc['1'] == True:
+                    self.__cadastrar()
+                elif opc['2'] == True:
+                    self.__listar()
+                elif opc['3'] == True:
+                    self.__modificar()
+                elif opc['4'] == True:
+                    self.__excluir()
+                else:
+                    self.__tela.opcao_invalida()
+                self.__tela.init_components()
+            elif botao == 'Cancelar':
+                self.__tela.close()
                 break
-            else:
-                print("Opção inválida!") # Fazer exception
 
     def __cadastrar(self):
-        try:
-            dados = self.__tela.ler_dados()
-            
-            for item in self.__produto_DAO.get_all():
-                if item.codigo == dados[0]:
-                    raise DadoInvalidoException("Código", dados[0], "Código já existe")
+        while True:
+            try:
+                dados = self.__tela.ler_dados()
+                if dados is None:
+                    break
 
-            produto = Produto(*dados)
-            self.__produto_DAO.add(produto)
-            print("Produto cadastrado com sucesso!")
-        except Exception as e:
-            print(f"Erro ao cadastrar: {e}")
+                codigo = str(dados['codigo'])
+                nome = str(dados['nome'])
+                descricao = str(dados['descricao'])
+                preco = float(dados['preco'])
+
+                for item in self.__produto_DAO.get_all():
+                    if item.codigo == dados['codigo']:
+                        raise DadoInvalidoException("Código", dados['codigo'], "Código já existe")
+
+                produto = Produto(codigo, nome, descricao, preco)
+                self.__produto_DAO.add(produto)
+                self.__tela.mostrar_mensagem_popup("Produto cadastrado com sucesso!")
+                
+                break
+            except Exception as e:
+                self.__tela.mostrar_mensagem_popup(f"Erro ao cadastrar Produto: {e}")
 
     def __listar(self):
         produtos = self.__produto_DAO.get_all()
-        print("\n=== Lista de Produtos ===")
         if not produtos:
-            print("Nenhum produto cadastrado.")
+            raise EntidadeNaoEncontradaException("Produto")
         else:
+            lista_produtos = []
             for p in produtos:
                 info = {'codigo': p.codigo, 'nome': p.nome, 'descricao': p.descricao, 'preco': p.preco}
-                self.__tela.mostrar_produto(info)
+                lista_produtos.append(info)
+            self.__tela.mostrar_produto(lista_produtos)
 
     def __modificar(self):
         try:
-            codigo = input("Digite o código do produto: ").strip()
+            codigo = self.__tela.selecionar_produto("Digite o Código do produto para modificar")
             produto = None
 
-            for p in self.__produto_DAO.get_all():
-                if p.codigo == codigo:
-                    produto = p
-                    break
-            
+            produto = self.__produto_DAO.get(codigo)
             if not produto:
                 raise EntidadeNaoEncontradaException("Produto", codigo)
-
-            print("\nDeixe em branco para manter o valor atual")
-
-            novo_codigo = input(f"Código atual ({produto.codigo}): ").strip()
-            if novo_codigo:
-                for p in self.__produto_DAO.get_all():
-                    if p != produto and p.codigo == novo_codigo:
-                        raise DadoInvalidoException("Código", novo_codigo, "Código já está em uso")
-                produto.codigo = novo_codigo
-
-            novo_nome = input(f"Nome atual ({produto.nome}): ").strip()
-            if novo_nome:
-                produto.nome = novo_nome
-                
-            nova_desc = input(f"Descrição atual ({produto.descricao}): ").strip()
-            if nova_desc:
-                produto.descricao = nova_desc
-                
-            novo_preco = input(f"Preço atual ({produto.preco}): ").strip()
-            if novo_preco:
-                try:
-                    produto.preco = float(novo_preco)
-                except ValueError:
-                    raise DadoInvalidoException("Preço", novo_preco, "Preço deve ser numérico")
+            produto_data = {
+                'codigo': produto.codigo,
+                'nome': produto.nome,
+                'descricao': produto.descricao,
+                'preco': produto.preco
+            }
+            dados = self.__tela.modificar_dados(produto_data)
+            print(dados)
+            if not dados:
+                return
             
-            print("Produto atualizado com sucesso!")
+            novo_codigo = dados['codigo']
+            if novo_codigo != codigo and self.__produto_DAO.get(novo_codigo):
+                raise DadoInvalidoException("Código", novo_codigo, "Código já existe")
+            nome = dados['nome']
+            descricao = dados['descricao']
+            preco = float(dados['preco'])
+            if preco:
+                try:
+                    produto.preco = float(preco)
+                except ValueError:
+                    raise DadoInvalidoException("Preço", preco, "Preço deve ser numérico")
+    
+            produto.codigo = codigo
+            produto.nome = nome
+            produto.descricao = descricao
+            produto.preco = preco
+            
+            self.__produto_DAO.update(produto)
+
+            self.__tela.mostrar_mensagem_popup("Produto modificado com sucesso!")
             
         except Exception as e:
-            print(f"Erro: {e}")
+            self.__tela.mostrar_mensagem_popup(f"Erro ao modificar produto: {e}")
 
     def __excluir(self):
         try:
-            codigo = input("Digite o código do produto: ").strip()
+            codigo = self.__tela.selecionar_produto("Digite o Código do produto para modificar")
             produto = None
-            
-            for p in self.__produto_DAO.get_all():
-                if p.codigo == codigo:
-                    produto = p
-                    break
+
+            produto = self.__produto_DAO.get(codigo)
             if not produto:
                 raise EntidadeNaoEncontradaException("Produto", codigo)
 
@@ -675,12 +751,20 @@ class ControllerProduto:
                 raise ViolacaoRegraNegocioException(
                     "Produto está vinculado a vendas e não pode ser excluído"
                 )
-                
-            self.__produto_DAO.remove(produto.codigo)
-            print("Produto excluído com sucesso!")
+            
+            dados_produto = {
+                "codigo": produto.codigo,
+                "nome": produto.nome
+            }
+            if not self.__tela.confirmar_exclusao(dados_produto):
+                return
+            
+            self.__produto_DAO.remove(codigo)
+
+            self.__tela.mostrar_mensagem_popup("Produto excluído com sucesso!")
             
         except Exception as e:
-            print(f"Erro: {e}") 
+            self.__tela.mostrar_mensagem_popup(f"Erro ao excluir produto: {e}")
 
 class Venda:
     def __init__(self, id, data, afiliado, produto, quantidade):
@@ -1524,18 +1608,14 @@ class ControllerSistema:
             button, key = self.__window.Read()
             if button == 'Confirmar':
                 if key['1'] == True:
-                    self.__window.Close()
                     self.__controller_produto.executar()
                 elif key['2'] == True:
                     self.__controller_afiliado.executar()
                 elif key['3'] == True:
-                    self.__window.Close()
                     self.__controller_venda.executar()
                 elif key['4'] == True:
-                    self.__window.Close()
                     self.__controller_pagamento.executar()
                 elif key['5'] == True:
-                    self.__window.Close()
                     self.__controller_relatorio.executar()
             elif button == 'Cancelar':
                 print("Encerrando...")
