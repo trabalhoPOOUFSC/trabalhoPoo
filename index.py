@@ -954,8 +954,7 @@ class TelaVenda:
     def modificar_dados(self, venda_data):
         layout = [
             [sg.Text('Modificar Venda')],
-            [sg.Text('ID Atual:'), sg.Text(str(venda_data['id']), key='id_atual')],
-            [sg.Text('Novo ID:'), sg.InputText(str(venda_data['id']), key='id')],
+            [sg.Text('ID:'), sg.Text(str(venda_data['id']), key='id_atual')],
             [sg.Text('Nova Data (AAAA-MM-DD):'), sg.InputText(venda_data['data'], key='data')],
             [sg.Text('Novo ID Afiliado:'), sg.InputText(str(venda_data['afiliado_id']), key='afiliado_id')],
             [sg.Text('Novo Código Produto:'), sg.InputText(venda_data['produto_codigo'], key='produto_codigo')],
@@ -991,17 +990,6 @@ class ControllerVenda:
         self.__controller_produto = controller_produto
         self.__venda_DAO = VendaDAO()
 
-    @property
-    def venda_DAO(self):
-        return self.__venda_DAO
-
-    @venda_DAO.setter
-    def venda_DAO(self, venda_DAO):
-        if not isinstance(venda_DAO, VendaDAO):
-            raise TypeError("venda_DAO deve ser uma instância de VendaDAO")
-
-        self.__venda_DAO = venda_DAO
-
     def executar(self):
         self.__tela.init_components()
         while True:
@@ -1026,12 +1014,21 @@ class ControllerVenda:
     def __cadastrar(self):
         while True:
             try:
+                data_atual = date.today()
                 dados = self.__tela.ler_dados()
                 if dados is None:
                     break
 
                 id = int(dados['id'])
-                data_str = dados['data']
+                data = dados['data']
+                try:
+                    data = date.fromisoformat(data)
+                except ValueError:
+                    raise DadoInvalidoException("Data", data, "Formato inválido. Use AAAA-MM-DD")
+                
+                if data > data_atual:
+                    raise ValueError("Data não pode ser futura")
+
                 afiliado_id = int(dados['afiliado_id'])
                 produto_codigo = dados['produto_codigo']
                 quantidade = int(dados['quantidade'])
@@ -1054,11 +1051,6 @@ class ControllerVenda:
                         break
                 if produto is None:
                     raise EntidadeNaoEncontradaException("Produto", produto_codigo)
-
-                try:
-                    data = date.fromisoformat(data_str)
-                except ValueError:
-                    raise DadoInvalidoException("Data", data_str, "Formato inválido. Use AAAA-MM-DD")
 
                 venda = Venda(id, data, afiliado, produto, quantidade)
                 afiliado.vendas.append(venda)
@@ -1117,41 +1109,25 @@ class ControllerVenda:
             if not dados:
                 return
 
-            novo_id = int(dados['id'])
-            nova_data_str = dados['data']
+            data_atual = date.today()
+            nova_data = date.fromisoformat(dados['data'])
+            if nova_data > data_atual:
+                raise ValueError("Data não pode ser futura")
+
             novo_afiliado_id = int(dados['afiliado_id'])
             novo_produto_codigo = dados['produto_codigo']
             nova_quantidade = int(dados['quantidade'])
 
-            if novo_id != id and self.__venda_DAO.get(novo_id):
-                raise DadoInvalidoException("ID", novo_id, "ID já existe")
-
-            try:
-                nova_data = date.fromisoformat(nova_data_str)
-            except ValueError:
-                raise DadoInvalidoException("Data", nova_data_str, "Formato inválido. Use AAAA-MM-DD")
-
-            novo_afiliado = None
-            for a in self.__controller_afiliado.afiliado_DAO.get_all():
-                if a.id == novo_afiliado_id:
-                    novo_afiliado = a
-                    break
+            novo_afiliado = next((a for a in self.__controller_afiliado.afiliado_DAO.get_all() if a.id == novo_afiliado_id), None)
             if not novo_afiliado:
                 raise EntidadeNaoEncontradaException("Afiliado", novo_afiliado_id)
 
-            novo_produto = None
-            for p in self.__controller_produto.produto_DAO.get_all():
-                if p.codigo == novo_produto_codigo:
-                    novo_produto = p
-                    break
+            novo_produto = next((p for p in self.__controller_produto.produto_DAO.get_all() if p.codigo == novo_produto_codigo), None)
             if not novo_produto:
                 raise EntidadeNaoEncontradaException("Produto", novo_produto_codigo)
 
-            venda_antiga = venda
-            venda_antiga.afiliado.vendas.remove(venda)
-            
-            venda.id = novo_id
             venda.data = nova_data
+            venda.afiliado.vendas.remove(venda)
             venda.afiliado = novo_afiliado
             venda.produto = novo_produto
             venda.quantidade = nova_quantidade
@@ -1159,8 +1135,7 @@ class ControllerVenda:
             venda.pagamento_afiliado = 'não realizado'
             
             novo_afiliado.vendas.append(venda)
-            self.__venda_DAO.update(novo_id, venda)
-            
+            self.__venda_DAO.update(venda.id, venda)
             self.__tela.mostrar_mensagem_popup("Venda modificada com sucesso!")
             
         except Exception as e:
