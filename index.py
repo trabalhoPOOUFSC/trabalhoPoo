@@ -337,16 +337,25 @@ class ControllerAfiliado:
                 if dados is None:
                     break
 
-                id = int(dados['id'])
+                id = dados['id']
                 nome = dados['nome']
                 contato = dados['contato']
                 parent_id = dados['parent']
+                try:
+                    id = int(dados['id'])
+                except ValueError:
+                    raise DadoInvalidoException("Id", dados['id'], "Id deve ser um inteiro!")
+                if parent_id:
+                    try:
+                        parent_id = int(dados['parent'])
+                    except ValueError:
+                        raise DadoInvalidoException("Id Afiliado Pai", dados['parent'], "Id deve ser um inteiro!")
 
                 parent = None
                 for a in self.__afiliado_DAO.get_all():
                     if a.id == id:
                         raise DadoInvalidoException("Id", id, "ID já existe")
-                    if parent_id and a.id == int(parent_id):
+                    if parent_id and a.id == parent_id:
                         parent = a
 
                 if parent_id and not parent:
@@ -396,10 +405,19 @@ class ControllerAfiliado:
             dados = self.__tela.modificar_dados(afiliado_data)
             if not dados: return
 
-            novo_id = int(dados['id'])
+            novo_id = dados['id']
             nome = dados['nome']
             contato = dados['contato']
             parent_id = dados['parent']
+            try:
+                novo_id = int(dados['id'])
+            except ValueError:
+                raise DadoInvalidoException("Id", dados['id'], "Id deve ser um inteiro!")
+            if parent_id:
+                try:
+                    parent_id = int(dados['parent'])
+                except ValueError:
+                    raise DadoInvalidoException("Id Afiliado Pai", dados['parent'], "Id deve ser um inteiro!")
 
             if novo_id != id and self.__afiliado_DAO.get(novo_id):
                 raise DadoInvalidoException("ID", novo_id, "ID já existe")
@@ -409,7 +427,7 @@ class ControllerAfiliado:
             afiliado.contato = contato
 
             if parent_id:
-                parent = self.__afiliado_DAO.get(int(parent_id))
+                parent = self.__afiliado_DAO.get(parent_id)
                 if not parent:
                     raise EntidadeNaoEncontradaException("Afiliado", parent_id)
                 afiliado.parent = parent
@@ -713,7 +731,11 @@ class ControllerProduto:
                 codigo = str(dados['codigo'])
                 nome = str(dados['nome'])
                 descricao = str(dados['descricao'])
-                preco = float(dados['preco'])
+                preco = dados['preco']
+                try:
+                    preco = float(dados['preco'])
+                except ValueError:
+                    raise DadoInvalidoException("Preço", dados['preco'], "Preço deve ser numérico")
 
                 for item in self.__produto_DAO.get_all():
                     if item.codigo == dados['codigo']:
@@ -760,12 +782,11 @@ class ControllerProduto:
 
             nome = dados['nome']
             descricao = dados['descricao']
-            preco = float(dados['preco'])
-            if preco:
-                try:
-                    produto.preco = float(preco)
-                except ValueError:
-                    raise DadoInvalidoException("Preço", preco, "Preço deve ser numérico")
+            preco = dados['preco']
+            try:
+                preco = float(dados['preco'])
+            except ValueError:
+                raise DadoInvalidoException("Preço", dados['preco'], "Preço deve ser numérico")
 
             produto.detalhes.nome = nome
             produto.detalhes.descricao = descricao
@@ -1088,8 +1109,12 @@ class ControllerVenda:
                 if dados is None:
                     break
 
-                id = int(dados['id'])
+                id = dados['id']
                 data = dados['data']
+                try:
+                    id = int(dados['id'])
+                except ValueError:
+                    raise DadoInvalidoException("Id", dados['id'], "Id deve ser um inteiro!")
                 try:
                     data = date.fromisoformat(data)
                 except ValueError:
@@ -1098,9 +1123,12 @@ class ControllerVenda:
                 if data > data_atual:
                     raise ValueError("Data não pode ser futura")
 
-                afiliado_id = int(dados['afiliado_id'])
-                produto_codigo = dados['produto_codigo']
-                quantidade = int(dados['quantidade'])
+                try:
+                    afiliado_id = int(dados['afiliado_id'])
+                    produto_codigo = dados['produto_codigo']
+                    quantidade = int(dados['quantidade'])
+                except Exception:
+                    raise Exception("Id de afiliado, código de produto e quantidade devem ser inteiros!")
 
                 if self.__venda_DAO.get(id):
                     raise DadoInvalidoException("ID", id, "ID já existe")
@@ -1151,11 +1179,14 @@ class ControllerVenda:
 
     def __modificar(self):
         try:
-            id_str = self.__tela.selecionar_venda("Digite o ID da venda para modificar")
-            if not id_str: 
+            id = self.__tela.selecionar_venda("Digite o ID da venda para modificar")
+            if not id: 
                 return
-                
-            id = int(id_str)
+
+            try:
+                id = int(id)
+            except ValueError:
+                raise DadoInvalidoException("Id", id, "Id deve ser um inteiro!")
             venda = self.__venda_DAO.get(id)
             
             if not venda:
@@ -1183,10 +1214,13 @@ class ControllerVenda:
             if nova_data > data_atual:
                 raise ValueError("Data não pode ser futura")
 
-            novo_afiliado_id = int(dados['afiliado_id'])
-            novo_produto_codigo = dados['produto_codigo']
-            nova_quantidade = int(dados['quantidade'])
-
+            try:
+                novo_afiliado_id = int(dados['afiliado_id'])
+                novo_produto_codigo = dados['produto_codigo']
+                nova_quantidade = int(dados['quantidade'])
+            except Exception:
+                raise Exception("Id de afiliado, código de produto e quantidade devem ser inteiros!")
+            
             novo_afiliado = next((a for a in self.__controller_afiliado.afiliado_DAO.get_all() if a.id == novo_afiliado_id), None)
             if not novo_afiliado:
                 raise EntidadeNaoEncontradaException("Afiliado", novo_afiliado_id)
@@ -1212,11 +1246,14 @@ class ControllerVenda:
 
     def __excluir(self):
         try:
-            id_str = self.__tela.selecionar_venda("Digite o ID da venda para excluir")
-            if not id_str: 
+            id = self.__tela.selecionar_venda("Digite o ID da venda para excluir")
+            if not id: 
                 return
                 
-            id = int(id_str)
+            try:
+                id = int(id)
+            except ValueError:
+                raise DadoInvalidoException("Id", id, "Id deve ser um inteiro!")
             venda = self.__venda_DAO.get(id)
             
             if not venda:
