@@ -183,14 +183,18 @@ class TelaAfiliado:
         self.__window = None
 
     def init_components(self):
-        sg.ChangeLookAndFeel('Reddit')
+        sg.theme('DarkBlue14')
         layout = [
-            [sg.Text('Escolha uma opção')],
-            [sg.Radio('Cadastrar afiliado', "RD1", default=False, key='1')],
-            [sg.Radio('Listar afiliados', "RD1", default=False, key='2')],
-            [sg.Radio('Modificar afiliado', "RD1", default=False, key='3')],
-            [sg.Radio('Excluir afiliado', "RD1", default=False, key='4')],
-            [sg.Submit('Confirmar'), sg.Cancel('Cancelar')]
+            [sg.Text('Escolha uma opção', font=('Helvetica', 14), expand_x=True, justification='center', pad=(5, 10))],
+            [sg.Radio('Cadastrar afiliado', "RD1", default=False, key='1', font=('Helvetica', 12), pad=(10, 5))],
+            [sg.Radio('Listar afiliados', "RD1", default=False, key='2', font=('Helvetica', 12), pad=(10, 5))],
+            [sg.Radio('Modificar afiliado', "RD1", default=False, key='3', font=('Helvetica', 12), pad=(10, 5))],
+            [sg.Radio('Excluir afiliado', "RD1", default=False, key='4', font=('Helvetica', 12), pad=(10, 5))],
+            [sg.HorizontalSeparator()],
+            [sg.Push(), 
+            sg.Button('Confirmar', size=(10,1), button_color=('white', 'green')), 
+            sg.Button('Cancelar', size=(10,1), button_color=('white', 'firebrick3')), 
+            sg.Push()]
         ]
         self.__window = sg.Window('Menu de Afiliado').Layout(layout)
 
@@ -204,13 +208,18 @@ class TelaAfiliado:
         return botao, opc
 
     def ler_dados(self):
+        sg.theme('DarkBlue14')
         layout = [
-            [sg.Text('Incluir Novo Afiliado')],
-            [sg.Text('Id', size=(15, 1)), sg.InputText(key='id')],
-            [sg.Text('Nome', size=(15, 1)), sg.InputText(key='nome')],
-            [sg.Text('Contato', size=(15, 1)), sg.InputText(key='contato')],
-            [sg.Text('Parent ID', size=(15, 1)), sg.InputText(key='parent')],
-            [sg.Submit('Confirmar'), sg.Cancel('Cancelar')]
+            [sg.Text('Incluir Novo Afiliado', font=('Helvetica', 16), expand_x=True, justification='center', pad=(5, 10))],
+            [sg.Text('Id', size=(15, 1), font=('Helvetica', 12)), sg.InputText(key='id', font=('Helvetica', 12), size=(30, 1))],
+            [sg.Text('Nome', size=(15, 1), font=('Helvetica', 12)), sg.InputText(key='nome', font=('Helvetica', 12), size=(30, 1))],
+            [sg.Text('Contato', size=(15, 1), font=('Helvetica', 12)), sg.InputText(key='contato', font=('Helvetica', 12), size=(30, 1))],
+            [sg.Text('Parent ID', size=(15, 1), font=('Helvetica', 12)), sg.InputText(key='parent', font=('Helvetica', 12), size=(30, 1))],
+            [sg.HorizontalSeparator(pad=(5, 15))],
+            [sg.Push(), 
+            sg.Button('Confirmar', size=(12, 1), button_color=('white', 'green')), 
+            sg.Button('Cancelar', size=(12, 1), button_color=('white', 'firebrick3')), 
+            sg.Push()]
         ]
 
         window = sg.Window('Cadastro de Afiliado', layout)
@@ -226,6 +235,7 @@ class TelaAfiliado:
                 parent_id = 'Nenhum'
             texto += f"ID: {info['id']} | Nome: {info['nome']} | Contato: {info['contato']} | Parent ID: {parent_id}\n"
 
+        sg.theme('DarkBlue14')
         layout = [
             [sg.Multiline(texto, size=(60, len(lista_afiliados) + 6), disabled=True)],
             [sg.Button("Fechar")]
@@ -236,6 +246,7 @@ class TelaAfiliado:
         window.close()
 
     def selecionar_afiliado(self, titulo: str):
+        sg.theme('DarkBlue14')
         layout = [
             [sg.Text(titulo)],
             [sg.Text('ID do Afiliado:'), sg.InputText(key='id')],
@@ -247,14 +258,25 @@ class TelaAfiliado:
         return None if botao == 'Cancelar' else values['id']
 
     def modificar_dados(self, afiliado_data):
+        sg.theme('DarkBlue14')
         layout = [
-            [sg.Text('Modificar Afiliado')],
-            [sg.Text('ID Atual:'), sg.Text(str(afiliado_data['id']), key='id_atual')],
-            [sg.Text('Novo ID:'), sg.InputText(str(afiliado_data['id']), key='id')],
-            [sg.Text('Nome:'), sg.InputText(afiliado_data['nome'], key='nome')],
-            [sg.Text('Contato:'), sg.InputText(afiliado_data['contato'], key='contato')],
-            [sg.Text('Parent ID:'), sg.InputText(str(afiliado_data['parent']) if afiliado_data['parent'] else '', key='parent')],
-            [sg.Submit('Confirmar'), sg.Cancel('Cancelar')]
+            [sg.Text('Modificar Afiliado', font=('Helvetica', 16), expand_x=True, justification='center', pad=(5, 10))],
+            [sg.Text('ID Atual:', size=(15, 1), font=('Helvetica', 12)), 
+            sg.Text(str(afiliado_data['id']), key='id_atual', font=('Helvetica', 12))],
+            [sg.Text('Novo ID:', size=(15, 1), font=('Helvetica', 12)), 
+            sg.InputText(str(afiliado_data['id']), key='id', font=('Helvetica', 12), size=(30, 1))],
+            [sg.Text('Nome:', size=(15, 1), font=('Helvetica', 12)), 
+            sg.InputText(afiliado_data['nome'], key='nome', font=('Helvetica', 12), size=(30, 1))],
+            [sg.Text('Contato:', size=(15, 1), font=('Helvetica', 12)), 
+            sg.InputText(afiliado_data['contato'], key='contato', font=('Helvetica', 12), size=(30, 1))],
+            [sg.Text('Parent ID:', size=(15, 1), font=('Helvetica', 12)), 
+            sg.InputText(str(afiliado_data['parent']) if afiliado_data['parent'] else '', key='parent', font=('Helvetica', 12), size=(30, 1))],
+            [sg.HorizontalSeparator(pad=(5, 15))],
+
+            [sg.Push(), 
+            sg.Button('Confirmar', size=(12, 1), button_color=('white', 'green')), 
+            sg.Button('Cancelar', size=(12, 1), button_color=('white', 'firebrick3')), 
+            sg.Push()]
         ]
 
         window = sg.Window('Modificar Afiliado', layout)
@@ -263,6 +285,7 @@ class TelaAfiliado:
         return None if botao == 'Cancelar' else values
 
     def confirmar_exclusao(self, afiliado_data):
+        sg.theme('DarkBlue14')
         layout = [
             [sg.Text(f'Confirmar exclusão do afiliado?')],
             [sg.Text(f'ID: {afiliado_data["id"]}')],
@@ -327,7 +350,7 @@ class ControllerAfiliado:
                         parent = a
 
                 if parent_id and not parent:
-                    raise EntidadeNaoEncontradaException("Afiliado", parent_id)
+                    raise sg.popup(EntidadeNaoEncontradaException("Afiliado", parent_id))
 
                 afiliado = Afiliado(id, nome, contato, parent)
                 self.__afiliado_DAO.add(afiliado)
@@ -342,7 +365,7 @@ class ControllerAfiliado:
     def __listar(self):
         afiliados = self.__afiliado_DAO.get_all()
         if not afiliados:
-            raise EntidadeNaoEncontradaException("Afiliado")
+            sg.popup(EntidadeNaoEncontradaException("Afiliado"))
         else:
             lista_afiliados = []
             for a in afiliados:
@@ -524,14 +547,16 @@ class TelaProduto:
         self.__window = None
 
     def init_components(self):
-        sg.ChangeLookAndFeel('Reddit')
+        sg.theme('DarkBlue14')
         layout = [
-            [sg.Text('Escolha uma opção')],
-            [sg.Radio('Cadastrar produto', "RD1", default=False, key='1')],
-            [sg.Radio('Listar produtos', "RD1", default=False, key='2')],
-            [sg.Radio('Modificar produto', "RD1", default=False, key='3')],
-            [sg.Radio('Excluir produto', "RD1", default=False, key='4')],
-            [sg.Submit('Confirmar'), sg.Cancel('Cancelar')]
+            [sg.Text('Escolha uma opção', font=('Helvetica', 14), expand_x=True, justification='center', pad=(5, 10))],
+            [sg.Radio('Cadastrar produto', "RD1", default=False, key='1', font=('Helvetica', 12), pad=(10, 5))],
+            [sg.Radio('Listar produtos', "RD1", default=False, key='2', font=('Helvetica', 12), pad=(10, 5))],
+            [sg.Radio('Modificar produto', "RD1", default=False, key='3', font=('Helvetica', 12), pad=(10, 5))],
+            [sg.Radio('Excluir produto', "RD1", default=False, key='4', font=('Helvetica', 12), pad=(10, 5))],
+            [sg.HorizontalSeparator()],
+            [sg.Push(), sg.Button('Confirmar', size=(10,1), button_color=('white', 'green')),
+            sg.Button('Cancelar', size=(10,1), button_color=('white', 'firebrick3')), sg.Push()]
         ]
         self.__window = sg.Window('Menu de Produtos').Layout(layout)
 
@@ -545,14 +570,21 @@ class TelaProduto:
         return botao, opc
 
     def ler_dados(self):
+        sg.theme('DarkBlue14')
         layout = [
-            [sg.Text('Incluir Novo Produto')],
-            [sg.Text('Código', size=(15, 1)), sg.InputText(key='codigo')],
-            [sg.Text('Nome', size=(15, 1)), sg.InputText(key='nome')],
-            [sg.Text('Descrição', size=(15, 1)), sg.InputText(key='descricao')],
-            [sg.Text('Preço', size=(15, 1)), sg.InputText(key='preco')],
-            [sg.Submit('Confirmar'), sg.Cancel('Cancelar')]
-        ]
+        [sg.Text('Incluir Novo Produto', font=('Helvetica', 16), expand_x=True, justification='center', pad=(5, 10))],
+        [sg.Text('Código:', size=(15, 1), font=('Helvetica', 10)), sg.InputText(key='codigo', font=('Helvetica', 10), size=(30, 1))],
+        [sg.Text('Nome:', size=(15, 1), font=('Helvetica', 10)), sg.InputText(key='nome', font=('Helvetica', 10), size=(30, 1))],
+        [sg.Text('Descrição:', size=(15, 1), font=('Helvetica', 10)), sg.InputText(key='descricao', font=('Helvetica', 10), size=(30, 1))],
+        [sg.Text('Preço:', size=(15, 1), font=('Helvetica', 10)), sg.InputText(key='preco', font=('Helvetica', 10), size=(30, 1))],
+
+        [sg.HorizontalSeparator(pad=(5, 15))],
+
+        [sg.Push(), 
+         sg.Button('Confirmar', size=(12, 1), button_color=('white', 'green')), 
+         sg.Button('Cancelar', size=(12, 1), button_color=('white', 'firebrick3')), 
+         sg.Push()]
+    ]
 
         window = sg.Window('Cadastro de Produto', layout)
         botao, values = window.read()
@@ -566,7 +598,7 @@ class TelaProduto:
 
         layout = [
             [sg.Multiline(texto, size=(60, len(lista_produtos) + 6), disabled=True)],
-            [sg.Button("Fechar")]
+            [sg.Button("Fechar", size=(7, 1), button_color=('white', 'firebrick3'))]
         ]
 
         window = sg.Window("Produtos Cadastrados", layout)
@@ -577,7 +609,8 @@ class TelaProduto:
         layout = [
             [sg.Text(titulo)],
             [sg.Text('Código do Produto:'), sg.InputText(key='codigo')],
-            [sg.Submit('Confirmar'), sg.Cancel('Cancelar')]
+            [sg.Button('Confirmar', size=(12, 1), button_color=('white', 'green')), 
+            sg.Button('Cancelar', size=(12, 1), button_color=('white', 'firebrick3'))]
         ]
         window = sg.Window('Selecionar Produto', layout)
         botao, values = window.read()
@@ -587,12 +620,21 @@ class TelaProduto:
 
     def modificar_dados(self, produto_data):
         layout = [
-            [sg.Text('Modificar Produto')],
-            [sg.Text('Código atual:'), sg.Text(str(produto_data['codigo']), key='codigo_atual')],
-            [sg.Text('Nome:'), sg.InputText(produto_data['nome'], key='nome')],
-            [sg.Text('Descrição:'), sg.InputText(produto_data['descricao'], key='descricao')],
-            [sg.Text('Preço:'), sg.InputText(str(produto_data['preco']), key='preco')],
-            [sg.Submit('Confirmar'), sg.Cancel('Cancelar')]
+            [sg.Text('Modificar Produto', font=('Helvetica', 16), expand_x=True, justification='center', pad=(5, 10))],
+            [sg.Text('Código atual:', size=(15, 1), font=('Helvetica', 12)), 
+            sg.Text(str(produto_data['codigo']), key='codigo_atual', font=('Helvetica', 12))],
+            [sg.Text('Nome:', size=(15, 1), font=('Helvetica', 12)), 
+            sg.InputText(produto_data['nome'], key='nome', font=('Helvetica', 12), size=(40, 1))],
+            [sg.Text('Descrição:', size=(15, 1), font=('Helvetica', 12)), 
+            sg.InputText(produto_data['descricao'], key='descricao', font=('Helvetica', 12), size=(40, 1))],
+            [sg.Text('Preço:', size=(15, 1), font=('Helvetica', 12)), 
+            sg.InputText(str(produto_data['preco']), key='preco', font=('Helvetica', 12), size=(40, 1))],
+            [sg.HorizontalSeparator(pad=(5, 15))],
+
+            [sg.Push(), 
+            sg.Button('Confirmar', size=(12, 1), button_color=('white', 'green')), 
+            sg.Button('Cancelar', size=(12, 1), button_color=('white', 'firebrick3')), 
+            sg.Push()]
         ]
 
         window = sg.Window('Modificar Produto', layout)
@@ -605,7 +647,10 @@ class TelaProduto:
             [sg.Text(f'Confirmar exclusão do produto?')],
             [sg.Text(f'Código: {produto_data["codigo"]}')],
             [sg.Text(f'Nome: {produto_data["nome"]}')],
-            [sg.Submit('Confirmar'), sg.Cancel('Cancelar')]
+            [sg.Push(), 
+            sg.Button('Confirmar', size=(9, 1), button_color=('white', 'green')), 
+            sg.Button('Cancelar', size=(9, 1), button_color=('white', 'firebrick3')),
+            sg.Push()]
         ]
         window = sg.Window('Confirmar Exclusão', layout)
         botao, _ = window.read()
@@ -685,7 +730,7 @@ class ControllerProduto:
     def __listar(self):
         produtos = self.__produto_DAO.get_all()
         if not produtos:
-            raise EntidadeNaoEncontradaException("Produto")
+            sg.popup(EntidadeNaoEncontradaException("Produto"))
         else:
             lista_produtos = []
             for p in produtos:
@@ -696,6 +741,8 @@ class ControllerProduto:
     def __modificar(self):
         try:
             codigo = self.__tela.selecionar_produto("Digite o Código do produto para modificar")
+            if not codigo: return
+
             produto = None
 
             produto = self.__produto_DAO.get(codigo)
@@ -708,7 +755,6 @@ class ControllerProduto:
                 'preco': produto.preco
             }
             dados = self.__tela.modificar_dados(produto_data)
-            
             if not dados:
                 return
 
@@ -735,6 +781,7 @@ class ControllerProduto:
     def __excluir(self):
         try:
             codigo = self.__tela.selecionar_produto("Digite o Código do produto para modificar")
+            if not codigo: return
             produto = None
 
             produto = self.__produto_DAO.get(codigo)
@@ -888,14 +935,16 @@ class TelaVenda:
         self.__window = None
 
     def init_components(self):
-        sg.ChangeLookAndFeel('Reddit')
+        sg.theme('DarkBlue14')
         layout = [
-            [sg.Text('Escolha uma opção')],
-            [sg.Radio('Registrar venda', "RD1", default=False, key='1')],
-            [sg.Radio('Listar vendas', "RD1", default=False, key='2')],
-            [sg.Radio('Modificar venda', "RD1", default=False, key='3')],
-            [sg.Radio('Excluir venda', "RD1", default=False, key='4')],
-            [sg.Submit('Confirmar'), sg.Cancel('Cancelar')]
+            [sg.Text('Escolha uma opção', font=('Helvetica', 14), expand_x=True, justification='center', pad=(5, 10))],
+            [sg.Radio('Registrar venda', "RD1", default=False, key='1', font=('Helvetica', 12), pad=(10, 5))],
+            [sg.Radio('Listar vendas', "RD1", default=False, key='2', font=('Helvetica', 12), pad=(10, 5))],
+            [sg.Radio('Modificar venda', "RD1", default=False, key='3', font=('Helvetica', 12), pad=(10, 5))],
+            [sg.Radio('Excluir venda', "RD1", default=False, key='4', font=('Helvetica', 12), pad=(10, 5))],
+            [sg.HorizontalSeparator()],
+            [sg.Push(), sg.Button('Confirmar', size=(10,1), button_color=('white', 'green')),
+            sg.Button('Cancelar', size=(10,1), button_color=('white', 'firebrick3')), sg.Push()]
         ]
         self.__window = sg.Window('Sistema de Vendas').Layout(layout)
 
@@ -910,14 +959,25 @@ class TelaVenda:
 
     def ler_dados(self):
         layout = [
-            [sg.Text('Registrar Nova Venda')],
-            [sg.Text('ID', size=(15, 1)), sg.InputText(key='id')],
-            [sg.Text('Data (AAAA-MM-DD)', size=(15, 1)), sg.InputText(key='data')],
-            [sg.Text('ID Afiliado', size=(15, 1)), sg.InputText(key='afiliado_id')],
-            [sg.Text('Código Produto', size=(15, 1)), sg.InputText(key='produto_codigo')],
-            [sg.Text('Quantidade', size=(15, 1)), sg.InputText(key='quantidade')],
-            [sg.Submit('Confirmar'), sg.Cancel('Cancelar')]
+            [sg.Text('Registrar Nova Venda', font=('Helvetica', 16), expand_x=True, justification='center', pad=(5, 10))],
+            [sg.Text('ID:', size=(19, 1), font=('Helvetica', 12)), 
+            sg.InputText(key='id', font=('Helvetica', 12), size=(30, 1))],
+            [sg.Text('Data (AAAA-MM-DD):', size=(19, 1), font=('Helvetica', 12)), 
+            sg.InputText(key='data', font=('Helvetica', 12), size=(30, 1))],
+            [sg.Text('ID Afiliado:', size=(19, 1), font=('Helvetica', 12)), 
+            sg.InputText(key='afiliado_id', font=('Helvetica', 12), size=(30, 1))],
+            [sg.Text('Código Produto:', size=(19, 1), font=('Helvetica', 12)), 
+            sg.InputText(key='produto_codigo', font=('Helvetica', 12), size=(30, 1))],
+            [sg.Text('Quantidade:', size=(19, 1), font=('Helvetica', 12)), 
+            sg.InputText(key='quantidade', font=('Helvetica', 12), size=(30, 1))],
+            [sg.HorizontalSeparator(pad=(5, 15))],
+
+            [sg.Push(), 
+            sg.Button('Confirmar', size=(12, 1), button_color=('white', 'green')), 
+            sg.Button('Cancelar', size=(12, 1), button_color=('white', 'firebrick3')), 
+            sg.Push()]
         ]
+
 
         window = sg.Window('Registrar Venda', layout)
         botao, values = window.read()
@@ -954,13 +1014,17 @@ class TelaVenda:
 
     def modificar_dados(self, venda_data):
         layout = [
-            [sg.Text('Modificar Venda')],
-            [sg.Text('ID:'), sg.Text(str(venda_data['id']), key='id_atual')],
-            [sg.Text('Nova Data (AAAA-MM-DD):'), sg.InputText(venda_data['data'], key='data')],
-            [sg.Text('Novo ID Afiliado:'), sg.InputText(str(venda_data['afiliado_id']), key='afiliado_id')],
-            [sg.Text('Novo Código Produto:'), sg.InputText(venda_data['produto_codigo'], key='produto_codigo')],
-            [sg.Text('Nova Quantidade:'), sg.InputText(str(venda_data['quantidade']), key='quantidade')],
-            [sg.Submit('Confirmar'), sg.Cancel('Cancelar')]
+            [sg.Text('Modificar Venda', font=('Helvetica', 16), expand_x=True, justification='center', pad=(5, 10))],
+            [sg.Text('ID:', size=(22, 1), font=('Helvetica', 12)), sg.Text(str(venda_data['id']), key='id_atual', font=('Helvetica', 12))],
+            [sg.Text('Nova Data (AAAA-MM-DD):', size=(22, 1), font=('Helvetica', 12)), sg.InputText(venda_data['data'], key='data', font=('Helvetica', 12))],
+            [sg.Text('Novo ID Afiliado:', size=(22, 1), font=('Helvetica', 12)), sg.InputText(str(venda_data['afiliado_id']), key='afiliado_id', font=('Helvetica', 12))],
+            [sg.Text('Novo Código Produto:', size=(22, 1), font=('Helvetica', 12)), sg.InputText(venda_data['produto_codigo'], key='produto_codigo', font=('Helvetica', 12))],
+            [sg.Text('Nova Quantidade:', size=(22, 1), font=('Helvetica', 12)), sg.InputText(str(venda_data['quantidade']), key='quantidade', font=('Helvetica', 12))],
+            [sg.HorizontalSeparator(pad=(5, 15))],
+            [sg.Push(), 
+            sg.Button('Confirmar', size=(12, 1), button_color=('white', 'green')), 
+            sg.Button('Cancelar', size=(12, 1), button_color=('white', 'firebrick3')), 
+            sg.Push()]
         ]
 
         window = sg.Window('Modificar Venda', layout)
@@ -1140,7 +1204,7 @@ class ControllerVenda:
             venda.pagamento_afiliado = 'não realizado'
             
             novo_afiliado.vendas.append(venda)
-            self.__venda_DAO.update(venda.id, venda)
+            self.__venda_DAO.update(venda)
             self.__tela.mostrar_mensagem_popup("Venda modificada com sucesso!")
             
         except Exception as e:
@@ -1297,15 +1361,33 @@ class PagamentoDAO(DAO):
             return super().remove(key)
 
 class TelaPagamento:
-    def mostrar_menu(self):
-        print("\n=== Menu Pagamento ===")
-        print("1. Gerar Comissões")
-        print("2. Listar Comissões")
-        print("3. Processar Pagamento das Comissões")
-        print("4. Listar Pagamentos Efetuados")
-        print("0. Voltar")
-        return input("Escolha uma opção: ")
+    def __init__(self):
+        self.__window = None
 
+    def init_components(self):
+        sg.ChangeLookAndFeel('DarkBlue14')
+        layout = [
+            [sg.Text('Escolha uma opção', font=('Helvetica', 14), expand_x=True, justification='center', pad=(5, 10))],
+            [sg.Radio('Gerar Comissões', "RD1", default=False, key='1', font=('Helvetica', 12), pad=(10, 5))],
+            [sg.Radio('Listar Comissões', "RD1", default=False, key='2', font=('Helvetica', 12), pad=(10, 5))],
+            [sg.Radio('Processar Pagamento das Comissões', "RD1", default=False, key='3', font=('Helvetica', 12), pad=(10, 5))],
+            [sg.Radio('Listar Pagamentos Efetuados', "RD1", default=False, key='4', font=('Helvetica', 12), pad=(10, 5))],
+            [sg.HorizontalSeparator()],
+            [sg.Push(), sg.Button('Confirmar', size=(10,1), button_color=('white', 'green')),
+            sg.Button('Cancelar', size=(10,1), button_color=('white', 'firebrick3')), sg.Push()]
+        ]
+        self.__window = sg.Window('Menu Pagamento').Layout(layout)
+
+    def close(self):
+        if self.__window:
+            self.__window.Close()
+        self.__window = None
+
+    def mostrar_menu(self):
+
+        botao, valores = self.__window.read()
+        return botao, valores
+    
     def ler_dados(self):
         try:
             id = int(input("Id: ").strip())
@@ -1331,13 +1413,36 @@ class TelaPagamento:
         
         return id, data, afiliado_id, valorPago
 
-    def mostrar_comissao(self, info):
-        print(f"Recebedor: {info['recebedor']} | Valor: R${info['valor']:.2f} | "
-              f"Venda: {info['venda']} | Tipo: {info['tipo']} | Vendedor: {info['vendedor']}")
+    def mostrar_comissao(self, lista_comissoes):
+        texto = "=== Lista de Comissões ===\n\n"
+        for info in lista_comissoes:
+            texto += f"Recebedor: {info['recebedor']} | Valor: R${info['valor']:.2f} | Venda: {info['venda']} | Tipo: {info['tipo']} | Vendedor: {info['vendedor']}\n"
 
-    def mostrar_pagamento(self, info):
-        print(f"ID Pagamento: {info['id']} | Data: {info['data']} | Afiliado: {info['afiliado']} | Valor Pago: R${info['valorPago']:.2f}")
+        layout = [
+            [sg.Multiline(texto, size=(60, len(lista_comissoes) + 6), disabled=True)],
+            [sg.Button("Fechar")]
+        ]
 
+        window = sg.Window("Lista de Comissões", layout)
+        window.read()
+        window.close()
+
+    def mostrar_pagamento(self, lista_pagamentos):
+        texto = "=== Lista de Pagamentos ===\n\n"
+        for info in lista_pagamentos:
+            texto += f"ID Pagamento: {info['id']} | Data: {info['data']} | Afiliado: {info['afiliado']} | Valor Pago: R${info['valorPago']:.2f}\n"
+
+        layout = [
+            [sg.Multiline(texto, size=(70, len(lista_pagamentos) + 6), disabled=True)],
+            [sg.Button("Fechar")]
+        ]
+
+        window = sg.Window("Lista de Pagamentos", layout)
+        window.read()
+        window.close()
+ 
+    def popup(self, mensagem):
+        sg.popup(mensagem)
 class ControllerPagamento:
     def __init__(self, tela, controller_venda):
         self.__tela = tela
@@ -1372,20 +1477,25 @@ class ControllerPagamento:
         self.__pagamento_DAO = pagamento_DAO
 
     def executar(self):
+        self.__tela.init_components()
         while True:
-            opc = self.__tela.mostrar_menu()
-            if opc == '1':
-                self.__gerar_comissoes()
-            elif opc == '2':
-                self.__listar_comissoes()
-            elif opc == '3':
-                self.__processar_pagamentos()
-            elif opc == '4':
-                self.__listar_pagamentos()
-            elif opc == '0':
+            botao, opc = self.__tela.mostrar_menu()
+            if botao == 'Confirmar':
+                self.__tela.close()
+                if opc['1'] == True:
+                    self.__gerar_comissoes()
+                elif opc['2'] == True:
+                    self.__listar_comissoes()
+                elif opc['3'] == True:
+                    self.__processar_pagamentos()
+                elif opc['4'] == True:
+                    self.__listar_pagamentos()
+                else:
+                    self.__tela.opcao_invalida()
+                self.__tela.init_components()
+            elif botao == 'Cancelar':
+                self.__tela.close()
                 break
-            else:
-                print("Opção inválida!")
 
     def __gerar_comissoes(self):
         self.__listaComissoes.clear()
@@ -1413,12 +1523,13 @@ class ControllerPagamento:
         for c in self.__listaComissoes:
             c.venda.pagamento_afiliado = 'aguardando confirmação'
             venda_dao.update(c.venda)
-        print("Comissões geradas com sucesso!")
+        self.__tela.popup("Comissões geradas com sucesso!")
 
     def __listar_comissoes(self):
         if not self.__listaComissoes:
-            print("Nenhuma comissão gerada.")
+            self.__tela.popup("Nenhuma comissão gerada.")
             return
+        lista_comissoes = []
         for c in self.__listaComissoes:
             info = {
                 'vendedor': f'{c.vendedor.nome} - {c.vendedor.id}',
@@ -1427,7 +1538,8 @@ class ControllerPagamento:
                 'tipo': c.tipo,
                 'valor': c.valor
             }
-            self.__tela.mostrar_comissao(info)
+            lista_comissoes.append(info)
+        self.__tela.mostrar_comissao(lista_comissoes)
 
     def __processar_pagamentos(self):
         venda_dao = self.__controller_venda.venda_DAO
@@ -1446,13 +1558,14 @@ class ControllerPagamento:
             next_id += 1
 
         self.__listaComissoes.clear()
-        print("Pagamentos processados com sucesso!")
+        self.__tela.popup("Pagamentos processados com sucesso!")
 
     def __listar_pagamentos(self):
         pagamentos = self.__pagamento_DAO.get_all()
         if not pagamentos:
-            print("Nenhum pagamento efetuado.")
+            self.__tela.popup("Nenhum pagamento efetuado.")
             return
+        lista_pagamentos = []
         for p in pagamentos:
             info = {
                 'id': p.id,
@@ -1460,7 +1573,8 @@ class ControllerPagamento:
                 'afiliado': f"{p.afiliado.nome} (ID: {p.afiliado.id})",
                 'valorPago': p.valorPago
             }
-            self.__tela.mostrar_pagamento(info)
+            lista_pagamentos.append(info)
+        self.__tela.mostrar_pagamento(lista_pagamentos)
 
 class Relatorio:
     def __init__(self, periodo, afiliado=None):
@@ -1514,12 +1628,14 @@ class TelaRelatorio:
         self.__window = None
 
     def init_components(self):
-        sg.ChangeLookAndFeel('Reddit')
+        sg.theme('DarkBlue14')
         layout = [
-            [sg.Text('Escolha uma opção')],
-            [sg.Radio('Gerar Relatório de Vendas', "RD1", default=False, key='1')],
-            [sg.Radio('Gerar Relatório de Pagamentos', "RD1", default=False, key='2')],
-            [sg.Submit('Confirmar'), sg.Cancel('Voltar')]
+            [sg.Text('Escolha uma opção', font=('Helvetica', 14), expand_x=True, justification='center', pad=(5, 10))],
+            [sg.Radio('Gerar Relatório de Vendas', "RD1", default=False, key='1', font=('Helvetica', 12), pad=(10, 5))],
+            [sg.Radio('Gerar Relatório de Pagamentos', "RD1", default=False, key='2', font=('Helvetica', 12), pad=(10, 5))],
+            [sg.HorizontalSeparator()],
+            [sg.Push(), sg.Button('Confirmar', size=(10,1), button_color=('white', 'green')),
+            sg.Button('Voltar', size=(10,1), button_color=('white', 'firebrick3')), sg.Push()]
         ]
         self.__window = sg.Window('Menu de Relatórios').Layout(layout)
 
@@ -1534,11 +1650,15 @@ class TelaRelatorio:
 
     def ler_dados(self):
         layout = [
-            [sg.Text('Gerar Relatório')],
-            [sg.Text('Data Inicial (AAAA-MM-DD)', size=(20, 1)), sg.InputText(key='data_inicial')],
-            [sg.Text('Data Final (AAAA-MM-DD)', size=(20, 1)), sg.InputText(key='data_final')],
-            [sg.Text('ID do Afiliado (opcional)', size=(20, 1)), sg.InputText(key='afiliado_id')],
-            [sg.Submit('Confirmar'), sg.Cancel('Cancelar')]
+            [sg.Text('Gerar Relatório', font=('Helvetica', 16), expand_x=True, justification='center', pad=(5, 10))],
+            [sg.Text('Data Inicial (AAAA-MM-DD)', size=(22, 1), font=('Helvetica', 11)), sg.InputText(key='data_inicial', size=(35, 1))],
+            [sg.Text('Data Final (AAAA-MM-DD)', size=(22, 1), font=('Helvetica', 11)), sg.InputText(key='data_final', size=(35, 1))],
+            [sg.Text('ID do Afiliado (opcional)', size=(22, 1), font=('Helvetica', 11)), sg.InputText(key='afiliado_id', size=(35, 1))],
+            [sg.HorizontalSeparator(pad=(5, 15))],
+            [sg.Push(), 
+            sg.Button('Confirmar', size=(12, 1), button_color=('white', 'green')), 
+            sg.Button('Cancelar', size=(12, 1), button_color=('white', 'firebrick3')), 
+            sg.Push()]
         ]
 
         window = sg.Window('Parâmetros do Relatório', layout)
@@ -1769,18 +1889,22 @@ class ControllerSistema:
         return self.__controller_relatorio
     
     def init_components(self):
-        sg.ChangeLookAndFeel('Reddit')
-        layout = [
-                        [sg.Text('Escolha uma opção')],
-                        [sg.Radio('Gerenciar Produtos', "RD1", default = False, key='1')],
-                        [sg.Radio('Gerenciar Afiliados', "RD1", default = False, key='2')],
-                        [sg.Radio('Gerenciar Vendas', "RD1", default = False, key='3')],
-                        [sg.Radio('Gerenciar Pagamentos', "RD1", default = False, key='4')],
-                        [sg.Radio('Gerenciar Relatório', "RD1", default = False, key='5')],
-                        [sg.Submit('Confirmar'), sg.Cancel('Cancelar')]
-            ]
+        sg.theme('DarkBlue14')
         
-        self.__window = sg.Window('Sistema Financeiro de Afiliados').Layout(layout)
+        layout = [
+            [sg.Text('Sistema Financeiro de Afiliados', font=('Helvetica', 14), expand_x=True, justification='center', pad=(5, 10))],
+            [sg.Radio('Gerenciar Produtos', "RD1", key='1', font=('Helvetica', 12), pad=(10, 5))],
+            [sg.Radio('Gerenciar Afiliados', "RD1", key='2', font=('Helvetica', 12), pad=(10, 5))],
+            [sg.Radio('Gerenciar Vendas', "RD1", key='3', font=('Helvetica', 12), pad=(10, 5))],
+            [sg.Radio('Gerenciar Pagamentos', "RD1", key='4', font=('Helvetica', 12), pad=(10, 5))],
+            [sg.Radio('Gerenciar Relatório', "RD1", key='5', font=('Helvetica', 12), pad=(10, 5))],
+            [sg.HorizontalSeparator()],
+            [sg.Push(), sg.Button('Confirmar', size=(10,1), button_color=('white', 'green')),
+            sg.Button('Cancelar', size=(10,1), button_color=('white', 'firebrick3')), sg.Push()]
+        ]
+
+        self.__window = sg.Window('Sistema Financeiro de Afiliados', layout, size=(500, 320), finalize=True)
+
     def executar(self):
         while True:
             button, key = self.__window.Read()
